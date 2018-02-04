@@ -1,0 +1,19 @@
+[package]
+name = "aeroscore"
+version = "0.0.0"
+authors = ["Tobias Bieniek <tobias.bieniek@gmail.com>"]
+description = "Algorithms for Glider Pilots"
+license = "MIT"
+repository = "https://github.com/Turbo87/aeroscore-rs.git"
+homepage = "https://github.com/Turbo87/aeroscore-rs.git"
+documentation = "https://docs.rs/aeroscore/"
+readme = "README.md"
+
+[badges]
+travis-ci = { repository = "Turbo87/aeroscore-rs", branch = "master" }
+
+[dependencies]
+
+[dev-dependencies]
+assert_approx_eq = "1.0.0"
+
