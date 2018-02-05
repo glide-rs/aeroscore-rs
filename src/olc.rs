@@ -25,23 +25,6 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     Ok(OptimizationResult { distance, point_list })
 }
 
-fn haversine_distance(fix1: &Point, fix2: &Point) -> f64 {
-    const R: f64 = 6371.; // kilometres
-
-    let phi1 = fix1.latitude().to_radians();
-    let phi2 = fix2.latitude().to_radians();
-    let delta_phi = (fix2.latitude() - fix1.latitude()).to_radians();
-    let delta_rho = (fix2.longitude() - fix1.longitude()).to_radians();
-
-    let a = (delta_phi / 2.).sin() * (delta_phi / 2.).sin() +
-        phi1.cos() * phi2.cos() *
-        (delta_rho / 2.).sin() * (delta_rho / 2.).sin();
-
-    let c = 2. * a.sqrt().atan2((1. - a).sqrt());
-
-    R * c
-}
-
 fn to_flat_points<T: Point>(points: &[T]) -> Vec<FlatPoint<f64>> {
     let center = center_lat(points);
     let proj = FlatProjection::new(center);
@@ -120,4 +103,21 @@ fn calculate_distance<T: Point>(route: &[T], point_list: &[usize]) -> f64 {
         .map(|(i1, i2)| (&route[i1], &route[i2]))
         .map(|(fix1, fix2)| haversine_distance(fix1, fix2))
         .sum()
+}
+
+fn haversine_distance(fix1: &Point, fix2: &Point) -> f64 {
+    const R: f64 = 6371.; // kilometres
+
+    let phi1 = fix1.latitude().to_radians();
+    let phi2 = fix2.latitude().to_radians();
+    let delta_phi = (fix2.latitude() - fix1.latitude()).to_radians();
+    let delta_rho = (fix2.longitude() - fix1.longitude()).to_radians();
+
+    let a = (delta_phi / 2.).sin() * (delta_phi / 2.).sin() +
+        phi1.cos() * phi2.cos() *
+            (delta_rho / 2.).sin() * (delta_rho / 2.).sin();
+
+    let c = 2. * a.sqrt().atan2((1. - a).sqrt());
+
+    R * c
 }
