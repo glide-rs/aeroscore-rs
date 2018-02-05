@@ -19,19 +19,7 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     let flat_points = to_flat_points(route);
     let distance_matrix = calculate_distance_matrix(&flat_points);
     let leg_distance_matrix = calculate_leg_distance_matrix(&distance_matrix);
-
-    let mut point_list: Vec<usize> = vec![0; LEGS + 1];
-
-    point_list[LEGS] = leg_distance_matrix[LEGS - 1]
-        .iter()
-        .enumerate()
-        .max_by(|&(_, dist1), &(_, dist2)| dist1.partial_cmp(&dist2).unwrap())
-        .map_or(0, |it| it.0);
-
-    // find waypoints
-    for leg in (0..LEGS).rev() {
-        point_list[leg] = leg_distance_matrix[leg][point_list[leg + 1]].0;
-    }
+    let point_list = find_max_distance_path(&leg_distance_matrix);
 
     let distance = (0..LEGS)
             .map(|i| (point_list[i], point_list[i + 1]))
@@ -112,4 +100,21 @@ fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f64>]) -> Vec<Vec<(usize
     }
 
     return dists;
+}
+
+fn find_max_distance_path(leg_distance_matrix: &[Vec<(usize, f64)>]) -> Vec<usize> {
+    let mut point_list: Vec<usize> = vec![0; LEGS + 1];
+
+    point_list[LEGS] = leg_distance_matrix[LEGS - 1]
+        .iter()
+        .enumerate()
+        .max_by(|&(_, dist1), &(_, dist2)| dist1.partial_cmp(&dist2).unwrap())
+        .map_or(0, |it| it.0);
+
+    // find waypoints
+    for leg in (0..LEGS).rev() {
+        point_list[leg] = leg_distance_matrix[leg][point_list[leg + 1]].0;
+    }
+
+    return point_list;
 }
