@@ -9,13 +9,28 @@ pub struct Fix {
     pub altitude_pressure: i16,
 }
 
+impl Point for Fix {
+    fn latitude(&self) -> f64 {
+        self.latitude
+    }
+
+    fn longitude(&self) -> f64 {
+        self.longitude
+    }
+}
+
+pub trait Point: Sync {
+    fn latitude(&self) -> f64;
+    fn longitude(&self) -> f64;
+}
+
 #[derive(Debug)]
 pub struct OptimizationResult {
     pub point_list: Vec<usize>,
     pub distance: f64,
 }
 
-pub fn optimize(route: &[Fix]) -> OptimizationResult {
+pub fn optimize<T: Point>(route: &[T]) -> OptimizationResult {
     const LEGS: usize = 6;
 
     let center = center_lat(&route);
@@ -23,7 +38,7 @@ pub fn optimize(route: &[Fix]) -> OptimizationResult {
 
     let flat_points: Vec<_> = route
         .par_iter()
-        .map(|fix| proj.project(fix.longitude, fix.latitude))
+        .map(|fix| proj.project(fix.longitude(), fix.latitude()))
         .collect();
 
     let xdists: Vec<Vec<f64>> = flat_points
@@ -82,13 +97,13 @@ pub fn optimize(route: &[Fix]) -> OptimizationResult {
     OptimizationResult { distance, point_list }
 }
 
-fn haversine_distance(fix1: &Fix, fix2: &Fix) -> f64 {
+fn haversine_distance(fix1: &Point, fix2: &Point) -> f64 {
     const R: f64 = 6371.; // kilometres
 
-    let phi1 = fix1.latitude.to_radians();
-    let phi2 = fix2.latitude.to_radians();
-    let delta_phi = (fix2.latitude - fix1.latitude).to_radians();
-    let delta_rho = (fix2.longitude - fix1.longitude).to_radians();
+    let phi1 = fix1.latitude().to_radians();
+    let phi2 = fix2.latitude().to_radians();
+    let delta_phi = (fix2.latitude() - fix1.latitude()).to_radians();
+    let delta_rho = (fix2.longitude() - fix1.longitude()).to_radians();
 
     let a = (delta_phi / 2.).sin() * (delta_phi / 2.).sin() +
         phi1.cos() * phi2.cos() *
@@ -99,9 +114,9 @@ fn haversine_distance(fix1: &Fix, fix2: &Fix) -> f64 {
     R * c
 }
 
-fn center_lat(fixes: &[Fix]) -> f64 {
-    let lat_min = fixes.iter().map(|fix| fix.latitude).min_by(|a, b| a.partial_cmp(&b).expect("lat_min min_by")).expect("lat_min failed");
-    let lat_max = fixes.iter().map(|fix| fix.latitude).max_by(|a, b| a.partial_cmp(&b).expect("lon_min min_by")).expect("lat_max failed");
+fn center_lat<T: Point>(fixes: &[T]) -> f64 {
+    let lat_min = fixes.iter().map(|fix| fix.latitude()).min_by(|a, b| a.partial_cmp(&b).expect("lat_min min_by")).expect("lat_min failed");
+    let lat_max = fixes.iter().map(|fix| fix.latitude()).max_by(|a, b| a.partial_cmp(&b).expect("lon_min min_by")).expect("lat_max failed");
 
     (lat_min + lat_max) / 2.
 }
