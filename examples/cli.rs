@@ -42,7 +42,7 @@ fn analyze(path: &str) {
         .map(|line| Point(igc::parse_fix(&line)))
         .collect::<Vec<_>>();
 
-    let result = olc::optimize(&fixes);
+    let result = olc::optimize(&fixes).unwrap();
 
     println!("distance: {:.2} km", result.distance);
 }

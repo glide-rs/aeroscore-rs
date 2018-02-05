@@ -1,5 +1,6 @@
-use rayon::prelude::*;
+use failure::Error;
 use flat_projection::FlatProjection;
+use rayon::prelude::*;
 
 pub trait Point: Sync {
     fn latitude(&self) -> f64;
@@ -12,7 +13,7 @@ pub struct OptimizationResult {
     pub distance: f64,
 }
 
-pub fn optimize<T: Point>(route: &[T]) -> OptimizationResult {
+pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     const LEGS: usize = 6;
 
     let center = center_lat(&route);
@@ -76,7 +77,7 @@ pub fn optimize<T: Point>(route: &[T]) -> OptimizationResult {
             .map(|(fix1, fix2)| haversine_distance(fix1, fix2))
             .sum();
 
-    OptimizationResult { distance, point_list }
+    Ok(OptimizationResult { distance, point_list })
 }
 
 fn haversine_distance(fix1: &Point, fix2: &Point) -> f64 {

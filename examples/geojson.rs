@@ -43,7 +43,7 @@ fn analyze(path: &str) {
         .map(|line| Point(igc::parse_fix(&line)))
         .collect::<Vec<_>>();
 
-    let result = olc::optimize(&fixes);
+    let result = olc::optimize(&fixes).unwrap();
 
     let result_coords = result.point_list.iter()
         .map(|i| fixes.get(*i).unwrap())

@@ -26,7 +26,7 @@ fn it_works() {
         .map(|line| Point(igc::parse_fix(&line)))
         .collect::<Vec<_>>();
 
-    let result = olc::optimize(&fixes);
+    let result = olc::optimize(&fixes).unwrap();
 
     assert_approx_eq!(result.distance, 504.023, 0.01);
 }

@@ -15,8 +15,9 @@ travis-ci = { repository = "Turbo87/aeroscore-rs", branch = "master" }
 [workspace]
 
 [dependencies]
-rayon = "^0.9"
+failure = "^0.1.1"
 flat_projection = "^0.1.1"
+rayon = "^0.9"
 
 [dev-dependencies]
 assert_approx_eq = "^1.0.0"

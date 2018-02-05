@@ -27,7 +27,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             .map(|line| Point(igc::parse_fix(&line)))
             .collect::<Vec<_>>();
 
-        olc::optimize(&fixes)
+        olc::optimize(&fixes).unwrap()
     }));
 }
 
