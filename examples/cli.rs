@@ -33,9 +33,6 @@ fn main() {
 fn analyze(path: &str) {
     println!("--- {}", path);
 
-    let current_dir = env::current_dir().expect("failed to determine current folder");
-    let path = current_dir.join(path);
-
     let file = File::open(&path).expect("failed to open file");
 
     let fixes = BufReader::new(file)
