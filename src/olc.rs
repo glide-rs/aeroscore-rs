@@ -2,6 +2,8 @@ use failure::Error;
 use flat_projection::{FlatProjection, FlatPoint};
 use rayon::prelude::*;
 
+const LEGS: usize = 6;
+
 pub trait Point: Sync {
     fn latitude(&self) -> f64;
     fn longitude(&self) -> f64;
@@ -14,38 +16,13 @@ pub struct OptimizationResult {
 }
 
 pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
-    const LEGS: usize = 6;
-
     let flat_points = to_flat_points(route);
     let distance_matrix = calculate_distance_matrix(&flat_points);
-
-    let mut dists: Vec<Vec<(usize, f64)>> = Vec::with_capacity(LEGS);
-
-    for leg in 0..LEGS {
-        let leg_dists = {
-            let last_leg_dists = if leg == 0 { None } else { Some(&dists[leg - 1]) };
-
-            (&distance_matrix)
-                .into_par_iter()
-                .map(|xxxdists| xxxdists
-                    .iter()
-                    .enumerate()
-                    .map(|(j, leg_dist)| {
-                        let last_leg_dist = last_leg_dists.map_or(0., |last| last[j].1);
-                        let total_dist = last_leg_dist + leg_dist;
-                        (j, total_dist)
-                    })
-                    .max_by(|&(_, dist1), &(_, dist2)| dist1.partial_cmp(&dist2).unwrap())
-                    .unwrap_or((0, 0.)))
-                .collect()
-        };
-
-        dists.push(leg_dists)
-    }
+    let leg_distance_matrix = calculate_leg_distance_matrix(&distance_matrix);
 
     let mut point_list: Vec<usize> = vec![0; LEGS + 1];
 
-    point_list[LEGS] = dists[LEGS - 1]
+    point_list[LEGS] = leg_distance_matrix[LEGS - 1]
         .iter()
         .enumerate()
         .max_by(|&(_, dist1), &(_, dist2)| dist1.partial_cmp(&dist2).unwrap())
@@ -53,7 +30,7 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
 
     // find waypoints
     for leg in (0..LEGS).rev() {
-        point_list[leg] = dists[leg][point_list[leg + 1]].0;
+        point_list[leg] = leg_distance_matrix[leg][point_list[leg + 1]].0;
     }
 
     let distance = (0..LEGS)
@@ -107,4 +84,32 @@ fn calculate_distance_matrix(flat_points: &[FlatPoint<f64>]) -> Vec<Vec<f64>> {
             .map(|p2| p1.distance(&p2))
             .collect())
         .collect()
+}
+
+fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f64>]) -> Vec<Vec<(usize, f64)>> {
+    let mut dists: Vec<Vec<(usize, f64)>> = Vec::with_capacity(LEGS);
+
+    for leg in 0..LEGS {
+        let leg_dists = {
+            let last_leg_dists = if leg == 0 { None } else { Some(&dists[leg - 1]) };
+
+            (&distance_matrix)
+                .into_par_iter()
+                .map(|xxxdists| xxxdists
+                    .iter()
+                    .enumerate()
+                    .map(|(j, leg_dist)| {
+                        let last_leg_dist = last_leg_dists.map_or(0., |last| last[j].1);
+                        let total_dist = last_leg_dist + leg_dist;
+                        (j, total_dist)
+                    })
+                    .max_by(|&(_, dist1), &(_, dist2)| dist1.partial_cmp(&dist2).unwrap())
+                    .unwrap_or((0, 0.)))
+                .collect()
+        };
+
+        dists.push(leg_dists)
+    }
+
+    return dists;
 }
