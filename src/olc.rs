@@ -20,12 +20,7 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     let distance_matrix = calculate_distance_matrix(&flat_points);
     let leg_distance_matrix = calculate_leg_distance_matrix(&distance_matrix);
     let point_list = find_max_distance_path(&leg_distance_matrix);
-
-    let distance = (0..LEGS)
-            .map(|i| (point_list[i], point_list[i + 1]))
-            .map(|(i1, i2)| (&route[i1], &route[i2]))
-            .map(|(fix1, fix2)| haversine_distance(fix1, fix2))
-            .sum();
+    let distance = calculate_distance(route, &point_list);
 
     Ok(OptimizationResult { distance, point_list })
 }
@@ -117,4 +112,12 @@ fn find_max_distance_path(leg_distance_matrix: &[Vec<(usize, f64)>]) -> Vec<usiz
     }
 
     return point_list;
+}
+
+fn calculate_distance<T: Point>(route: &[T], point_list: &[usize]) -> f64 {
+    (0..LEGS)
+        .map(|i| (point_list[i], point_list[i + 1]))
+        .map(|(i1, i2)| (&route[i1], &route[i2]))
+        .map(|(fix1, fix2)| haversine_distance(fix1, fix2))
+        .sum()
 }
