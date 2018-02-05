@@ -17,16 +17,7 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     const LEGS: usize = 6;
 
     let flat_points = to_flat_points(route);
-
-    let xdists: Vec<Vec<f64>> = flat_points
-        .par_iter()
-        .enumerate()
-        .map(|(i, p1)| flat_points
-            .iter()
-            .take(i)
-            .map(|p2| p1.distance(&p2))
-            .collect())
-        .collect();
+    let distance_matrix = calculate_distance_matrix(&flat_points);
 
     let mut dists: Vec<Vec<(usize, f64)>> = Vec::with_capacity(LEGS);
 
@@ -34,7 +25,7 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
         let leg_dists = {
             let last_leg_dists = if leg == 0 { None } else { Some(&dists[leg - 1]) };
 
-            (&xdists)
+            (&distance_matrix)
                 .into_par_iter()
                 .map(|xxxdists| xxxdists
                     .iter()
@@ -105,4 +96,15 @@ fn center_lat<T: Point>(fixes: &[T]) -> f64 {
     let lat_max = fixes.iter().map(|fix| fix.latitude()).max_by(|a, b| a.partial_cmp(&b).expect("lon_min min_by")).expect("lat_max failed");
 
     (lat_min + lat_max) / 2.
+}
+
+fn calculate_distance_matrix(flat_points: &[FlatPoint<f64>]) -> Vec<Vec<f64>> {
+    flat_points.par_iter()
+        .enumerate()
+        .map(|(i, p1)| flat_points
+            .iter()
+            .take(i)
+            .map(|p2| p1.distance(&p2))
+            .collect())
+        .collect()
 }
