@@ -1,24 +1,6 @@
 use rayon::prelude::*;
 use flat_projection::FlatProjection;
 
-#[derive(Debug, Clone, Copy)]
-pub struct Fix {
-    pub latitude: f64,
-    pub longitude: f64,
-    pub altitude_gps: i16,
-    pub altitude_pressure: i16,
-}
-
-impl Point for Fix {
-    fn latitude(&self) -> f64 {
-        self.latitude
-    }
-
-    fn longitude(&self) -> f64 {
-        self.longitude
-    }
-}
-
 pub trait Point: Sync {
     fn latitude(&self) -> f64;
     fn longitude(&self) -> f64;

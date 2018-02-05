@@ -7,7 +7,25 @@ extern crate aeroscore;
 use regex::Regex;
 use aeroscore::olc;
 
-fn parse_fix(line: &str) -> olc::Fix {
+#[derive(Debug, Clone, Copy)]
+struct Fix {
+    latitude: f64,
+    longitude: f64,
+    altitude_gps: i16,
+    altitude_pressure: i16,
+}
+
+impl olc::Point for Fix {
+    fn latitude(&self) -> f64 {
+        self.latitude
+    }
+
+    fn longitude(&self) -> f64 {
+        self.longitude
+    }
+}
+
+fn parse_fix(line: &str) -> Fix {
     lazy_static! {
         static ref RE: Regex = Regex::new(r"(?x)
             ^B                     # record typ
@@ -28,7 +46,7 @@ fn parse_fix(line: &str) -> olc::Fix {
     let longitude = caps.at(7).unwrap().parse::<f64>().unwrap() +
         caps.at(8).unwrap().parse::<f64>().unwrap() / 60000.;
 
-    olc::Fix {
+    Fix {
         latitude: if caps.at(6).unwrap() == "S" { -latitude } else { latitude },
         longitude: if caps.at(9).unwrap() == "W" { -longitude } else { longitude },
         altitude_gps: caps.at(11).unwrap().parse::<i16>().unwrap(),
