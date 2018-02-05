@@ -11,7 +11,7 @@ pub trait Point: Sync {
 
 #[derive(Debug)]
 pub struct OptimizationResult {
-    pub point_list: Vec<usize>,
+    pub point_list: [usize; LEGS + 1],
     pub distance: f64,
 }
 
@@ -80,8 +80,8 @@ fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f64>]) -> Vec<Vec<(usize
     return dists;
 }
 
-fn find_max_distance_path(leg_distance_matrix: &[Vec<(usize, f64)>]) -> Vec<usize> {
-    let mut point_list: Vec<usize> = vec![0; LEGS + 1];
+fn find_max_distance_path(leg_distance_matrix: &[Vec<(usize, f64)>]) -> [usize; LEGS + 1] {
+    let mut point_list: [usize; LEGS + 1] = [0; LEGS + 1];
 
     point_list[LEGS] = leg_distance_matrix[LEGS - 1]
         .iter()
