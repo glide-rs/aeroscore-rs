@@ -1,0 +1,8 @@
+[package]
+name = "igc"
+version = "0.0.0"
+workspace = ".."
+
+[dependencies]
+lazy_static = "^1.0.0"
+regex = "^0.1.41"

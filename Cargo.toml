@@ -12,6 +12,8 @@ readme = "README.md"
 [badges]
 travis-ci = { repository = "Turbo87/aeroscore-rs", branch = "master" }
 
+[workspace]
+
 [dependencies]
 rayon = "^0.9"
 flat_projection = "^0.1.1"
@@ -19,8 +21,7 @@ flat_projection = "^0.1.1"
 [dev-dependencies]
 assert_approx_eq = "^1.0.0"
 criterion = "^0.2.0"
-lazy_static = "^1.0.0"
-regex = "^0.1.41"
+igc = { path = "igc" }
 
 [[bench]]
 name = "olc_classic"
