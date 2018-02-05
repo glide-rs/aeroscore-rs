@@ -1,5 +1,5 @@
 use failure::Error;
-use flat_projection::FlatProjection;
+use flat_projection::{FlatProjection, FlatPoint};
 use rayon::prelude::*;
 
 pub trait Point: Sync {
@@ -16,13 +16,7 @@ pub struct OptimizationResult {
 pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     const LEGS: usize = 6;
 
-    let center = center_lat(&route);
-    let proj = FlatProjection::new(center);
-
-    let flat_points: Vec<_> = route
-        .par_iter()
-        .map(|fix| proj.project(fix.longitude(), fix.latitude()))
-        .collect();
+    let flat_points = to_flat_points(route);
 
     let xdists: Vec<Vec<f64>> = flat_points
         .par_iter()
@@ -95,6 +89,15 @@ fn haversine_distance(fix1: &Point, fix2: &Point) -> f64 {
     let c = 2. * a.sqrt().atan2((1. - a).sqrt());
 
     R * c
+}
+
+fn to_flat_points<T: Point>(points: &[T]) -> Vec<FlatPoint<f64>> {
+    let center = center_lat(points);
+    let proj = FlatProjection::new(center);
+
+    points.par_iter()
+        .map(|fix| proj.project(fix.longitude(), fix.latitude()))
+        .collect()
 }
 
 fn center_lat<T: Point>(fixes: &[T]) -> f64 {
