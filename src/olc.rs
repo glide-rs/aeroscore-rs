@@ -109,13 +109,19 @@ fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f64>]) -> Vec<Vec<(usize
 /// and returns an array with the corresponding `points` indices
 ///
 fn find_max_distance_path(leg_distance_matrix: &[Vec<(usize, f64)>]) -> [usize; LEGS + 1] {
-    let mut point_list: [usize; LEGS + 1] = [0; LEGS + 1];
-
-    point_list[LEGS] = leg_distance_matrix[LEGS - 1]
+    let max_distance_finish_index = leg_distance_matrix[LEGS - 1]
         .iter()
         .enumerate()
         .ord_subset_max_by_key(|&(_, dist)| dist)
         .map_or(0, |it| it.0);
+
+    return find_path(leg_distance_matrix, max_distance_finish_index);
+}
+
+fn find_path(leg_distance_matrix: &[Vec<(usize, f64)>], finish_index: usize) -> [usize; LEGS + 1] {
+    let mut point_list: [usize; LEGS + 1] = [0; LEGS + 1];
+
+    point_list[LEGS] = finish_index;
 
     // find waypoints
     for leg in (0..LEGS).rev() {
