@@ -25,6 +25,8 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     Ok(OptimizationResult { distance, point_list })
 }
 
+/// Projects all geographic points onto a flat surface for faster geodesic calculation
+///
 fn to_flat_points<T: Point>(points: &[T]) -> Vec<FlatPoint<f64>> {
     let center = center_lat(points);
     let proj = FlatProjection::new(center);
@@ -41,6 +43,27 @@ fn center_lat<T: Point>(fixes: &[T]) -> f64 {
     (lat_min + lat_max) / 2.
 }
 
+/// Generates a N*N matrix half-filled with the distances in kilometers between all points.
+///
+/// - N: Number of points
+///
+/// ```text
+///  +-----------------------> column
+///  | - - - - - - - - - - -
+///  | X - - - - - - - - - -
+///  | X X - - - - - - - - -
+///  | X X X - - - - - - - -
+///  | X X X X - - - - - - -
+///  | X X X X X - - - - - -
+///  | X X X X X X - - - - -
+///  | X X X X X X X - - - -
+///  | X X X X X X X X - - -
+///  | X X X X X X X X X - -
+///  | X X X X X X X X X X -
+///  v
+/// row
+/// ```
+///
 fn calculate_distance_matrix(flat_points: &[FlatPoint<f64>]) -> Vec<Vec<f64>> {
     flat_points.par_iter()
         .enumerate()
@@ -80,6 +103,9 @@ fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f64>]) -> Vec<Vec<(usize
     return dists;
 }
 
+/// Finds the path through the `leg_distance_matrix` with the largest distance
+/// and returns an array with the corresponding `points` indices
+///
 fn find_max_distance_path(leg_distance_matrix: &[Vec<(usize, f64)>]) -> [usize; LEGS + 1] {
     let mut point_list: [usize; LEGS + 1] = [0; LEGS + 1];
 
@@ -97,6 +123,9 @@ fn find_max_distance_path(leg_distance_matrix: &[Vec<(usize, f64)>]) -> [usize; 
     return point_list;
 }
 
+/// Calculates the total task distance (via haversine algorithm) from
+/// the original `route` and the arry of indices
+///
 fn calculate_distance<T: Point>(route: &[T], point_list: &[usize]) -> f64 {
     (0..LEGS)
         .map(|i| (point_list[i], point_list[i + 1]))
