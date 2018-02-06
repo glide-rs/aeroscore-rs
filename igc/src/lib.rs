@@ -7,6 +7,7 @@ use regex::Regex;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Fix {
+    pub seconds_since_midnight: u32,
     pub latitude: f64,
     pub longitude: f64,
     altitude_gps: i16,
@@ -28,6 +29,10 @@ pub fn parse_fix(line: &str) -> Fix {
 
     let caps = RE.captures(line).expect("Broken B record");
 
+    let seconds_since_midnight = caps.at(1).unwrap().parse::<u32>().unwrap() * 3600 +
+        caps.at(2).unwrap().parse::<u32>().unwrap() * 60 +
+        caps.at(3).unwrap().parse::<u32>().unwrap();
+
     let latitude = caps.at(4).unwrap().parse::<f64>().unwrap() +
         caps.at(5).unwrap().parse::<f64>().unwrap() / 60000.;
 
@@ -35,6 +40,7 @@ pub fn parse_fix(line: &str) -> Fix {
         caps.at(8).unwrap().parse::<f64>().unwrap() / 60000.;
 
     Fix {
+        seconds_since_midnight,
         latitude: if caps.at(6).unwrap() == "S" { -latitude } else { latitude },
         longitude: if caps.at(9).unwrap() == "W" { -longitude } else { longitude },
         altitude_gps: caps.at(11).unwrap().parse::<i16>().unwrap(),
