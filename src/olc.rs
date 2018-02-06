@@ -21,7 +21,7 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     let flat_points = to_flat_points(route);
     let distance_matrix = calculate_distance_matrix(&flat_points);
     let leg_distance_matrix = calculate_leg_distance_matrix(&distance_matrix);
-    let point_list = find_max_distance_path(&leg_distance_matrix);
+    let point_list = find_max_distance_path(&leg_distance_matrix, route);
     let distance = calculate_distance(route, &point_list);
 
     Ok(OptimizationResult { distance, point_list })
@@ -108,10 +108,17 @@ fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f64>]) -> Vec<Vec<(usize
 /// Finds the path through the `leg_distance_matrix` with the largest distance
 /// and returns an array with the corresponding `points` indices
 ///
-fn find_max_distance_path(leg_distance_matrix: &[Vec<(usize, f64)>]) -> [usize; LEGS + 1] {
+fn find_max_distance_path<T: Point>(leg_distance_matrix: &[Vec<(usize, f64)>], points: &[T]) -> [usize; LEGS + 1] {
     let max_distance_finish_index = leg_distance_matrix[LEGS - 1]
         .iter()
         .enumerate()
+        .filter(|&(finish_index, _)| {
+            let path = find_path(leg_distance_matrix, finish_index);
+            let start_index = path[0];
+            let start = &points[start_index];
+            let finish = &points[finish_index];
+            return finish.altitude() + 1000 >= start.altitude();
+        })
         .ord_subset_max_by_key(|&(_, dist)| dist)
         .map_or(0, |it| it.0);
 
