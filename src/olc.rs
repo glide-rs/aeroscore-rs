@@ -1,5 +1,6 @@
 use failure::Error;
 use flat_projection::{FlatProjection, FlatPoint};
+use ord_subset::OrdSubsetIterExt;
 use rayon::prelude::*;
 
 const LEGS: usize = 6;
@@ -37,8 +38,8 @@ fn to_flat_points<T: Point>(points: &[T]) -> Vec<FlatPoint<f64>> {
 }
 
 fn center_lat<T: Point>(fixes: &[T]) -> f64 {
-    let lat_min = fixes.iter().map(|fix| fix.latitude()).min_by(|a, b| a.partial_cmp(&b).expect("lat_min min_by")).expect("lat_min failed");
-    let lat_max = fixes.iter().map(|fix| fix.latitude()).max_by(|a, b| a.partial_cmp(&b).expect("lon_min min_by")).expect("lat_max failed");
+    let lat_min = fixes.iter().map(|fix| fix.latitude()).ord_subset_min().expect("lat_min failed");
+    let lat_max = fixes.iter().map(|fix| fix.latitude()).ord_subset_max().expect("lat_max failed");
 
     (lat_min + lat_max) / 2.
 }
@@ -92,7 +93,7 @@ fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f64>]) -> Vec<Vec<(usize
                         let total_dist = last_leg_dist + leg_dist;
                         (j, total_dist)
                     })
-                    .max_by(|&(_, dist1), &(_, dist2)| dist1.partial_cmp(&dist2).unwrap())
+                    .ord_subset_max_by_key(|&(_, dist)| dist)
                     .unwrap_or((0, 0.)))
                 .collect()
         };
@@ -112,7 +113,7 @@ fn find_max_distance_path(leg_distance_matrix: &[Vec<(usize, f64)>]) -> [usize; 
     point_list[LEGS] = leg_distance_matrix[LEGS - 1]
         .iter()
         .enumerate()
-        .max_by(|&(_, dist1), &(_, dist2)| dist1.partial_cmp(&dist2).unwrap())
+        .ord_subset_max_by_key(|&(_, dist)| dist)
         .map_or(0, |it| it.0);
 
     // find waypoints
