@@ -10,8 +10,8 @@ pub struct Fix {
     pub seconds_since_midnight: u32,
     pub latitude: f64,
     pub longitude: f64,
-    altitude_gps: i16,
-    altitude_pressure: i16,
+    pub altitude_gps: i16,
+    pub altitude_pressure: i16,
 }
 
 pub fn parse_fix(line: &str) -> Fix {

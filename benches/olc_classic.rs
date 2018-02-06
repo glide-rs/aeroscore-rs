@@ -13,9 +13,11 @@ impl olc::Point for Point {
     fn latitude(&self) -> f64 {
         self.0.latitude
     }
-
     fn longitude(&self) -> f64 {
         self.0.longitude
+    }
+    fn altitude(&self) -> i16 {
+        self.0.altitude_gps
     }
 }
 
