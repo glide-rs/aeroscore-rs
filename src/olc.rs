@@ -30,7 +30,7 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
 /// Projects all geographic points onto a flat surface for faster geodesic calculation
 ///
 fn to_flat_points<T: Point>(points: &[T]) -> Vec<FlatPoint<f64>> {
-    let center = center_lat(points);
+    let center = center_lat(points).unwrap();
     let proj = FlatProjection::new(center);
 
     points.par_iter()
@@ -38,11 +38,11 @@ fn to_flat_points<T: Point>(points: &[T]) -> Vec<FlatPoint<f64>> {
         .collect()
 }
 
-fn center_lat<T: Point>(fixes: &[T]) -> f64 {
-    let lat_min = fixes.iter().map(|fix| fix.latitude()).ord_subset_min().expect("lat_min failed");
-    let lat_max = fixes.iter().map(|fix| fix.latitude()).ord_subset_max().expect("lat_max failed");
+fn center_lat<T: Point>(points: &[T]) -> Option<f64> {
+    let lat_min = points.iter().map(|fix| fix.latitude()).ord_subset_min()?;
+    let lat_max = points.iter().map(|fix| fix.latitude()).ord_subset_max()?;
 
-    (lat_min + lat_max) / 2.
+    Some((lat_min + lat_max) / 2.)
 }
 
 /// Generates a N*N matrix half-filled with the distances in kilometers between all points.
