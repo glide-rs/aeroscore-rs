@@ -1,7 +1,35 @@
 use failure::Error;
 use flat_projection::{FlatProjection, FlatPoint};
 use ord_subset::OrdSubsetIterExt;
+
+#[cfg(not(feature = "parallel"))]
+use std::slice;
+
+#[cfg(feature = "parallel")]
+use rayon::slice;
+
+#[cfg(feature = "parallel")]
 use rayon::prelude::*;
+
+#[cfg(not(feature = "parallel"))]
+fn opt_par_iter<'a, T>(x: &'a [T]) -> slice::Iter<'a, T> {
+    x.iter()
+}
+
+#[cfg(not(feature = "parallel"))]
+fn opt_into_par_iter<'a, T>(x: &'a [T]) -> slice::Iter<'a, T> {
+    x.into_iter()
+}
+
+#[cfg(feature = "parallel")]
+fn opt_par_iter<'a, T: Sync>(x: &'a [T]) -> slice::Iter<'a, T> {
+    x.par_iter()
+}
+
+#[cfg(feature = "parallel")]
+fn opt_into_par_iter<'a, T: Sync>(x: &'a [T]) -> slice::Iter<'a, T> {
+    x.into_par_iter()
+}
 
 const LEGS: usize = 6;
 
@@ -33,7 +61,7 @@ fn to_flat_points<T: Point>(points: &[T]) -> Vec<FlatPoint<f64>> {
     let center = points.center_lat().unwrap();
     let proj = FlatProjection::new(center);
 
-    points.par_iter()
+    opt_par_iter(points)
         .map(|fix| proj.project(fix.longitude(), fix.latitude()))
         .collect()
 }
@@ -73,7 +101,7 @@ impl<T: Point> CenterLatitude for [T] {
 /// ```
 ///
 fn calculate_distance_matrix(flat_points: &[FlatPoint<f64>]) -> Vec<Vec<f64>> {
-    flat_points.par_iter()
+    opt_par_iter(flat_points)
         .enumerate()
         .map(|(i, p1)| flat_points
             .iter()
@@ -90,8 +118,7 @@ fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f64>]) -> Vec<Vec<(usize
         let leg_dists = {
             let last_leg_dists = if leg == 0 { None } else { Some(&dists[leg - 1]) };
 
-            (&distance_matrix)
-                .into_par_iter()
+            opt_into_par_iter(distance_matrix)
                 .map(|xxxdists| xxxdists
                     .iter()
                     .enumerate()
