@@ -12,22 +12,22 @@ use rayon::slice;
 use rayon::prelude::*;
 
 #[cfg(not(feature = "parallel"))]
-fn opt_par_iter<'a, T>(x: &'a [T]) -> slice::Iter<'a, T> {
+fn opt_par_iter<T>(x: &[T]) -> slice::Iter<T> {
     x.iter()
 }
 
 #[cfg(not(feature = "parallel"))]
-fn opt_into_par_iter<'a, T>(x: &'a [T]) -> slice::Iter<'a, T> {
+fn opt_into_par_iter<T>(x: &[T]) -> slice::Iter<T> {
     x.into_iter()
 }
 
 #[cfg(feature = "parallel")]
-fn opt_par_iter<'a, T: Sync>(x: &'a [T]) -> slice::Iter<'a, T> {
+fn opt_par_iter<T: Sync>(x: &[T]) -> slice::Iter<T> {
     x.par_iter()
 }
 
 #[cfg(feature = "parallel")]
-fn opt_into_par_iter<'a, T: Sync>(x: &'a [T]) -> slice::Iter<'a, T> {
+fn opt_into_par_iter<T: Sync>(x: &[T]) -> slice::Iter<T> {
     x.into_par_iter()
 }
 
@@ -106,7 +106,7 @@ fn calculate_distance_matrix(flat_points: &[FlatPoint<f64>]) -> Vec<Vec<f64>> {
         .map(|(i, p1)| flat_points
             .iter()
             .take(i)
-            .map(|p2| p1.distance(&p2))
+            .map(|p2| p1.distance(p2))
             .collect())
         .collect()
 }
@@ -135,7 +135,7 @@ fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f64>]) -> Vec<Vec<(usize
         dists.push(leg_dists)
     }
 
-    return dists;
+    dists
 }
 
 /// Finds the path through the `leg_distance_matrix` with the largest distance
@@ -150,12 +150,12 @@ fn find_max_distance_path<T: Point>(leg_distance_matrix: &[Vec<(usize, f64)>], p
             let start_index = path[0];
             let start = &points[start_index];
             let finish = &points[finish_index];
-            return finish.altitude() + 1000 >= start.altitude();
+            finish.altitude() + 1000 >= start.altitude()
         })
         .ord_subset_max_by_key(|&(_, dist)| dist)
         .map_or(0, |it| it.0);
 
-    return find_path(leg_distance_matrix, max_distance_finish_index);
+    find_path(leg_distance_matrix, max_distance_finish_index)
 }
 
 fn find_path(leg_distance_matrix: &[Vec<(usize, f64)>], finish_index: usize) -> [usize; LEGS + 1] {
@@ -168,7 +168,7 @@ fn find_path(leg_distance_matrix: &[Vec<(usize, f64)>], finish_index: usize) -> 
         point_list[leg] = leg_distance_matrix[leg][point_list[leg + 1]].0;
     }
 
-    return point_list;
+    point_list
 }
 
 /// Calculates the total task distance (via haversine algorithm) from

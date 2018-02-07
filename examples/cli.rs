@@ -29,7 +29,7 @@ fn main() {
         return help();
     }
 
-    &args[1..].iter().for_each(|path| analyze(path));
+    args[1..].iter().for_each(|path| analyze(path));
 }
 
 fn analyze(path: &str) {

@@ -26,7 +26,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         let fixes = include_str!("../tests/fixtures/2017-08-14-fla-6ng-01.igc")
             .lines()
             .filter(|l| l.starts_with('B'))
-            .map(|line| Point(igc::parse_fix(&line)))
+            .map(|line| Point(igc::parse_fix(line)))
             .collect::<Vec<_>>();
 
         olc::optimize(&fixes).unwrap()
