@@ -20,7 +20,7 @@ parallel = ["rayon"]
 
 [dependencies]
 failure = "^0.1.1"
-flat_projection = "^0.1.1"
+flat_projection = "^0.2.0"
 ord_subset = "^3.1.0"
 rayon = { version = "^0.9", optional = true }
 
