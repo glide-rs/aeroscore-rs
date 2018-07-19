@@ -29,21 +29,21 @@ pub fn parse_fix(line: &str) -> Fix {
 
     let caps = RE.captures(line).expect("Broken B record");
 
-    let seconds_since_midnight = caps.at(1).unwrap().parse::<u32>().unwrap() * 3600 +
-        caps.at(2).unwrap().parse::<u32>().unwrap() * 60 +
-        caps.at(3).unwrap().parse::<u32>().unwrap();
+    let seconds_since_midnight = caps[1].parse::<u32>().unwrap() * 3600 +
+        caps[2].parse::<u32>().unwrap() * 60 +
+        caps[3].parse::<u32>().unwrap();
 
-    let latitude = caps.at(4).unwrap().parse::<f64>().unwrap() +
-        caps.at(5).unwrap().parse::<f64>().unwrap() / 60000.;
+    let latitude = caps[4].parse::<f64>().unwrap() +
+        caps[5].parse::<f64>().unwrap() / 60000.;
 
-    let longitude = caps.at(7).unwrap().parse::<f64>().unwrap() +
-        caps.at(8).unwrap().parse::<f64>().unwrap() / 60000.;
+    let longitude = caps[7].parse::<f64>().unwrap() +
+        caps[8].parse::<f64>().unwrap() / 60000.;
 
     Fix {
         seconds_since_midnight,
-        latitude: if caps.at(6).unwrap() == "S" { -latitude } else { latitude },
-        longitude: if caps.at(9).unwrap() == "W" { -longitude } else { longitude },
-        altitude_gps: caps.at(11).unwrap().parse::<i16>().unwrap(),
-        altitude_pressure: caps.at(12).unwrap().parse::<i16>().unwrap(),
+        latitude: if &caps[6] == "S" { -latitude } else { latitude },
+        longitude: if &caps[9] == "W" { -longitude } else { longitude },
+        altitude_gps: caps[11].parse::<i16>().unwrap(),
+        altitude_pressure: caps[12].parse::<i16>().unwrap(),
     }
 }
