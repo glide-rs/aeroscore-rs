@@ -15,8 +15,7 @@ travis-ci = { repository = "Turbo87/aeroscore-rs", branch = "master" }
 [workspace]
 
 [features]
-default = ["parallel"]
-parallel = ["rayon"]
+default = ["rayon"]
 
 [dependencies]
 cfg-if = "0.1"

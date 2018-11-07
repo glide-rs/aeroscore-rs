@@ -3,7 +3,7 @@ use flat_projection::{FlatProjection, FlatPoint};
 use ord_subset::OrdSubsetIterExt;
 
 cfg_if! {
-    if #[cfg(feature = "parallel")] {
+    if #[cfg(feature = "rayon")] {
         use rayon::slice;
         use rayon::prelude::*;
 
