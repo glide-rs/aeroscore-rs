@@ -1,3 +1,5 @@
+#[macro_use] extern crate cfg_if;
+
 extern crate failure;
 extern crate flat_projection;
 extern crate ord_subset;

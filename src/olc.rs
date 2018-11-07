@@ -2,33 +2,30 @@ use failure::Error;
 use flat_projection::{FlatProjection, FlatPoint};
 use ord_subset::OrdSubsetIterExt;
 
-#[cfg(not(feature = "parallel"))]
-use std::slice;
+cfg_if! {
+    if #[cfg(feature = "parallel")] {
+        use rayon::slice;
+        use rayon::prelude::*;
 
-#[cfg(feature = "parallel")]
-use rayon::slice;
+        fn opt_par_iter<T: Sync>(x: &[T]) -> slice::Iter<T> {
+            x.par_iter()
+        }
 
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
+        fn opt_into_par_iter<T: Sync>(x: &[T]) -> slice::Iter<T> {
+            x.into_par_iter()
+        }
 
-#[cfg(not(feature = "parallel"))]
-fn opt_par_iter<T>(x: &[T]) -> slice::Iter<T> {
-    x.iter()
-}
+    } else {
+        use std::slice;
 
-#[cfg(not(feature = "parallel"))]
-fn opt_into_par_iter<T>(x: &[T]) -> slice::Iter<T> {
-    x.into_iter()
-}
+        fn opt_par_iter<T>(x: &[T]) -> slice::Iter<T> {
+            x.iter()
+        }
 
-#[cfg(feature = "parallel")]
-fn opt_par_iter<T: Sync>(x: &[T]) -> slice::Iter<T> {
-    x.par_iter()
-}
-
-#[cfg(feature = "parallel")]
-fn opt_into_par_iter<T: Sync>(x: &[T]) -> slice::Iter<T> {
-    x.into_par_iter()
+        fn opt_into_par_iter<T>(x: &[T]) -> slice::Iter<T> {
+            x.into_iter()
+        }
+    }
 }
 
 const LEGS: usize = 6;

@@ -19,6 +19,7 @@ default = ["parallel"]
 parallel = ["rayon"]
 
 [dependencies]
+cfg-if = "0.1"
 failure = "^0.1.1"
 flat_projection = "^0.2.0"
 ord_subset = "^3.1.0"
