@@ -12,8 +12,6 @@ readme = "README.md"
 [badges]
 travis-ci = { repository = "Turbo87/aeroscore-rs", branch = "master" }
 
-[workspace]
-
 [features]
 default = ["rayon"]
 
@@ -27,7 +25,7 @@ rayon = { version = "^1.0", optional = true }
 [dev-dependencies]
 assert_approx_eq = "^1.0.0"
 criterion = "^0.2.0"
-igc = { path = "igc" }
+igc = { git = "https://github.com/Joey9801/igc-rs" }
 serde_json = "^1.0.0"
 
 [[bench]]
