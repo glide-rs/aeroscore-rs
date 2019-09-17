@@ -142,13 +142,13 @@ fn find_max_distance_path<T: Point>(leg_distance_matrix: &[Vec<(usize, f64)>], p
     let max_distance_finish_index = leg_distance_matrix[LEGS - 1]
         .iter()
         .enumerate()
-        .filter(|&(finish_index, _)| {
-            let path = find_path(leg_distance_matrix, finish_index);
-            let start_index = path[0];
-            let start = &points[start_index];
-            let finish = &points[finish_index];
-            finish.altitude() + 1000 >= start.altitude()
-        })
+//        .filter(|&(finish_index, _)| {
+//            let path = find_path(leg_distance_matrix, finish_index);
+//            let start_index = path[0];
+//            let start = &points[start_index];
+//            let finish = &points[finish_index];
+//            finish.altitude() + 1000 >= start.altitude()
+//        })
         .ord_subset_max_by_key(|&(_, dist)| dist)
         .map_or(0, |it| it.0);
 

@@ -4,12 +4,21 @@ extern crate assert_approx_eq;
 extern crate aeroscore;
 extern crate igc;
 
-use aeroscore::olc;
+use aeroscore::olc2 as olc;
 
 struct Point {
+    time: igc::util::Time,
     latitude: f64,
     longitude: f64,
     altitude: i16,
+}
+
+impl std::fmt::Debug for Point {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let lon_min = (self.longitude - self.longitude.floor()) * 60.;
+        let lat_min = (self.latitude - self.latitude.floor()) * 60.;
+        write!(f, "{} {:03.0}°{:02.3}E  {:.0}°{:.3}N", self.time, self.longitude.floor(), lon_min, self.latitude.floor(), lat_min)
+    }
 }
 
 impl olc::Point for Point {
@@ -26,15 +35,17 @@ impl olc::Point for Point {
 
 #[test]
 fn it_works() {
-    let release_seconds = 10 * 3600 + 28 * 60 + 5;
+    // 09:02:05
+    let release_seconds = 9 * 3600 + 2 * 60 + 5;
 
-    let fixes = include_str!("fixtures/2017-08-14-fla-6ng-01.igc")
+    let fixes = include_str!("fixtures/87ilqqk1.igc")
         .lines()
         .filter(|l| l.starts_with('B'))
         .filter_map(|line| igc::records::BRecord::parse(&line).ok()
             .map_or(None, |record| {
                 if seconds_since_midnight(&record.timestamp) >= release_seconds {
                     Some(Point {
+                        time: record.timestamp,
                         latitude: record.pos.lat.into(),
                         longitude: record.pos.lon.into(),
                         altitude: record.gps_alt,
@@ -47,7 +58,7 @@ fn it_works() {
 
     let result = olc::optimize(&fixes).unwrap();
 
-    assert_approx_eq!(result.distance, 501.3, 0.1);
+    assert_approx_eq!(result.distance, 780.4, 0.1);
 }
 
 fn seconds_since_midnight(time: &igc::util::Time) -> i32 {

@@ -56,6 +56,14 @@ fn analyze(path: &str) {
     let result = olc::optimize(&fixes).unwrap();
 
     println!("distance: {:.2} km", result.distance);
+
+    let start_fix = &fixes[result.point_list[0]];
+    let finish_fix = &fixes[result.point_list[6]];
+
+    let delta_alt = start_fix.altitude - finish_fix.altitude;
+    if delta_alt > 1000 {
+        println!("ERROR Startüberhöhung!!! {}m", delta_alt);
+    }
 }
 
 fn help() {

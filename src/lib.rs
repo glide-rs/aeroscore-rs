@@ -8,3 +8,4 @@ extern crate ord_subset;
 extern crate rayon;
 
 pub mod olc;
+pub mod olc2;
