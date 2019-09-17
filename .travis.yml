@@ -18,6 +18,6 @@ cache: cargo
 install: skip
 
 script:
-  - cargo build --all
+  - cargo build --release --all
+  - cargo test --release --all
   - cargo bench --no-run
-  - cargo test --all
