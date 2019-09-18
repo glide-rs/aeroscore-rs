@@ -209,18 +209,6 @@ fn opt<T: Point>(geo_points: &[T]) -> [usize; LEGS + 1] {
     println!("{:?}", f_geo_point);
     println!("{:?}", g_geo_point);
 
-    let distance = (
-        haversine_distance(a_geo_point, b_geo_point) +
-        haversine_distance(b_geo_point, c_geo_point) +
-        haversine_distance(c_geo_point, d_geo_point) +
-        haversine_distance(d_geo_point, e_geo_point) +
-        haversine_distance(e_geo_point, f_geo_point) +
-        haversine_distance(f_geo_point, g_geo_point)
-    );
-
-    println!("{:#?}", distance);
-
-
     let mut point_list: [usize; LEGS + 1] = [a_index, b_index, c_index, d_index, e_index, f_index, g_index];
     point_list
 }

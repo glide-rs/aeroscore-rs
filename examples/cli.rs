@@ -6,7 +6,7 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::fs::File;
 
-use aeroscore::olc3 as olc;
+use aeroscore::olc4 as olc;
 
 struct Point {
     time: igc::util::Time,
@@ -64,7 +64,7 @@ fn analyze(path: &str) {
                         time: record.timestamp,
                         latitude: record.pos.lat.into(),
                         longitude: record.pos.lon.into(),
-                        altitude: record.gps_alt,
+                        altitude: record.pressure_alt,
                     })
                 } else {
                     None

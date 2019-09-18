@@ -208,7 +208,7 @@ fn opt<T: Point>(route: &[T]) -> [usize; LEGS + 1] {
                     .enumerate()
                     .filter(|&(a_index, _a_point)| {
                         let a_geo_point = &route[a_index];
-                        g_geo_point.altitude() - a_geo_point.altitude() <= 1000
+                        a_geo_point.altitude() - g_geo_point.altitude() <= 1000
                     })
                     .map(|(a_index, a_point)| {
                         let ab_distance = a_point.distance(&b_point);
@@ -242,19 +242,7 @@ fn opt<T: Point>(route: &[T]) -> [usize; LEGS + 1] {
     println!("{:?}", f_geo_point);
     println!("{:?}", g_geo_point);
 
-    let distance = (
-        haversine_distance(a_geo_point, b_geo_point) +
-        haversine_distance(b_geo_point, c_geo_point) +
-        haversine_distance(c_geo_point, d_geo_point) +
-        haversine_distance(d_geo_point, e_geo_point) +
-        haversine_distance(e_geo_point, f_geo_point) +
-        haversine_distance(f_geo_point, g_geo_point)
-    );
-
-    println!("{:#?}", distance);
-
-
-    let mut point_list: [usize; LEGS + 1] = [0; LEGS + 1];
+    let mut point_list: [usize; LEGS + 1] = [a_index, b_index, c_index, d_index, e_index, f_index, g_index];
     point_list
 }
 
