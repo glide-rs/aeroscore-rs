@@ -9,3 +9,4 @@ extern crate rayon;
 
 pub mod olc;
 pub mod olc2;
+pub mod olc3;

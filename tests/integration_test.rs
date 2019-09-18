@@ -4,7 +4,7 @@ extern crate assert_approx_eq;
 extern crate aeroscore;
 extern crate igc;
 
-use aeroscore::olc2 as olc;
+use aeroscore::olc3 as olc;
 
 struct Point {
     time: igc::util::Time,
@@ -17,7 +17,7 @@ impl std::fmt::Debug for Point {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let lon_min = (self.longitude - self.longitude.floor()) * 60.;
         let lat_min = (self.latitude - self.latitude.floor()) * 60.;
-        write!(f, "{} {:03.0}°{:02.3}E  {:.0}°{:.3}N", self.time, self.longitude.floor(), lon_min, self.latitude.floor(), lat_min)
+        write!(f, "{}  {:03.0}°{:06.3}E  {:03.0}°{:06.3}N  {:4.0}m", self.time, self.longitude.floor(), lon_min, self.latitude.floor(), lat_min, self.altitude)
     }
 }
 
