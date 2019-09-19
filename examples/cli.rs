@@ -6,7 +6,7 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::fs::File;
 
-use aeroscore::olc4 as olc;
+use aeroscore::olc5 as olc;
 
 struct Point {
     time: igc::util::Time,
