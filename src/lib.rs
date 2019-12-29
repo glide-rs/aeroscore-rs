@@ -9,5 +9,6 @@ extern crate rayon;
 
 pub mod olc;
 mod point;
+mod parallel;
 
 pub use point::Point;

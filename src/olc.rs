@@ -3,32 +3,7 @@ use flat_projection::{FlatProjection, FlatPoint};
 use ord_subset::OrdSubsetIterExt;
 
 use crate::Point;
-
-cfg_if! {
-    if #[cfg(feature = "rayon")] {
-        use rayon::slice;
-        use rayon::prelude::*;
-
-        fn opt_par_iter<T: Sync>(x: &[T]) -> slice::Iter<T> {
-            x.par_iter()
-        }
-
-        fn opt_into_par_iter<T: Sync>(x: &[T]) -> slice::Iter<T> {
-            x.into_par_iter()
-        }
-
-    } else {
-        use std::slice;
-
-        fn opt_par_iter<T>(x: &[T]) -> slice::Iter<T> {
-            x.iter()
-        }
-
-        fn opt_into_par_iter<T>(x: &[T]) -> slice::Iter<T> {
-            x.into_iter()
-        }
-    }
-}
+use crate::parallel::*;
 
 const LEGS: usize = 6;
 
