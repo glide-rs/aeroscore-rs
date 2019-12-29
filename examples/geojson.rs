@@ -17,7 +17,7 @@ struct Point {
     altitude: i16,
 }
 
-impl olc::Point for Point {
+impl aeroscore::Point for Point {
     fn latitude(&self) -> f64 {
         self.latitude
     }

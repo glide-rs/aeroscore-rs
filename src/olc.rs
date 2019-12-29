@@ -2,6 +2,8 @@ use failure::Error;
 use flat_projection::{FlatProjection, FlatPoint};
 use ord_subset::OrdSubsetIterExt;
 
+use crate::Point;
+
 cfg_if! {
     if #[cfg(feature = "rayon")] {
         use rayon::slice;
@@ -29,12 +31,6 @@ cfg_if! {
 }
 
 const LEGS: usize = 6;
-
-pub trait Point: Sync {
-    fn latitude(&self) -> f64;
-    fn longitude(&self) -> f64;
-    fn altitude(&self) -> i16;
-}
 
 #[derive(Debug)]
 pub struct OptimizationResult {

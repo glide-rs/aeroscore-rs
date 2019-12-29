@@ -8,3 +8,6 @@ extern crate ord_subset;
 extern crate rayon;
 
 pub mod olc;
+mod point;
+
+pub use point::Point;
