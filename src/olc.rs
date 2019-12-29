@@ -1,8 +1,9 @@
 use failure::Error;
-use flat_projection::{FlatProjection, FlatPoint};
+use flat_projection::FlatPoint;
 use ord_subset::OrdSubsetIterExt;
 
 use crate::Point;
+use crate::flat::to_flat_points;
 use crate::parallel::*;
 
 const LEGS: usize = 6;
@@ -21,30 +22,6 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     let distance = calculate_distance(route, &point_list);
 
     Ok(OptimizationResult { distance, point_list })
-}
-
-/// Projects all geographic points onto a flat surface for faster geodesic calculation
-///
-fn to_flat_points<T: Point>(points: &[T]) -> Vec<FlatPoint<f64>> {
-    let center = points.center_lat().unwrap();
-    let proj = FlatProjection::new(center);
-
-    opt_par_iter(points)
-        .map(|fix| proj.project(fix.longitude(), fix.latitude()))
-        .collect()
-}
-
-trait CenterLatitude {
-    fn center_lat(self: &Self) -> Option<f64>;
-}
-
-impl<T: Point> CenterLatitude for [T] {
-    fn center_lat(self: &Self) -> Option<f64> {
-        let lat_min = self.iter().map(|fix| fix.latitude()).ord_subset_min()?;
-        let lat_max = self.iter().map(|fix| fix.latitude()).ord_subset_max()?;
-
-        Some((lat_min + lat_max) / 2.)
-    }
 }
 
 /// Generates a N*N matrix half-filled with the distances in kilometers between all points.
