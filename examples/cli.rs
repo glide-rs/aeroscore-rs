@@ -9,6 +9,7 @@ use std::fs::File;
 use aeroscore::olc;
 
 struct Point {
+    time: igc::util::Time,
     latitude: f64,
     longitude: f64,
     altitude: i16,
@@ -47,6 +48,7 @@ fn analyze(path: &str) {
         .filter(|l| l.starts_with('B'))
         .filter_map(|line| igc::records::BRecord::parse(&line).ok()
             .map(|record| Point {
+                time: record.timestamp,
                 latitude: record.pos.lat.into(),
                 longitude: record.pos.lon.into(),
                 altitude: record.gps_alt,
