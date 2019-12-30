@@ -1,40 +1,13 @@
 use failure::Error;
-use flat_projection::{FlatProjection, FlatPoint};
+use flat_projection::FlatPoint;
 use ord_subset::OrdSubsetIterExt;
 
-cfg_if! {
-    if #[cfg(feature = "rayon")] {
-        use rayon::slice;
-        use rayon::prelude::*;
-
-        fn opt_par_iter<T: Sync>(x: &[T]) -> slice::Iter<T> {
-            x.par_iter()
-        }
-
-        fn opt_into_par_iter<T: Sync>(x: &[T]) -> slice::Iter<T> {
-            x.into_par_iter()
-        }
-
-    } else {
-        use std::slice;
-
-        fn opt_par_iter<T>(x: &[T]) -> slice::Iter<T> {
-            x.iter()
-        }
-
-        fn opt_into_par_iter<T>(x: &[T]) -> slice::Iter<T> {
-            x.into_iter()
-        }
-    }
-}
+use crate::Point;
+use crate::flat::to_flat_points;
+use crate::haversine::haversine_distance;
+use crate::parallel::*;
 
 const LEGS: usize = 6;
-
-pub trait Point: Sync {
-    fn latitude(&self) -> f64;
-    fn longitude(&self) -> f64;
-    fn altitude(&self) -> i16;
-}
 
 #[derive(Debug)]
 pub struct OptimizationResult {
@@ -50,30 +23,6 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     let distance = calculate_distance(route, &point_list);
 
     Ok(OptimizationResult { distance, point_list })
-}
-
-/// Projects all geographic points onto a flat surface for faster geodesic calculation
-///
-fn to_flat_points<T: Point>(points: &[T]) -> Vec<FlatPoint<f64>> {
-    let center = points.center_lat().unwrap();
-    let proj = FlatProjection::new(center);
-
-    opt_par_iter(points)
-        .map(|fix| proj.project(fix.longitude(), fix.latitude()))
-        .collect()
-}
-
-trait CenterLatitude {
-    fn center_lat(self: &Self) -> Option<f64>;
-}
-
-impl<T: Point> CenterLatitude for [T] {
-    fn center_lat(self: &Self) -> Option<f64> {
-        let lat_min = self.iter().map(|fix| fix.latitude()).ord_subset_min()?;
-        let lat_max = self.iter().map(|fix| fix.latitude()).ord_subset_max()?;
-
-        Some((lat_min + lat_max) / 2.)
-    }
 }
 
 /// Generates a N*N matrix half-filled with the distances in kilometers between all points.
@@ -177,21 +126,4 @@ fn calculate_distance<T: Point>(route: &[T], point_list: &[usize]) -> f64 {
         .map(|(i1, i2)| (&route[i1], &route[i2]))
         .map(|(fix1, fix2)| haversine_distance(fix1, fix2))
         .sum()
-}
-
-fn haversine_distance(fix1: &Point, fix2: &Point) -> f64 {
-    const R: f64 = 6371.; // kilometres
-
-    let phi1 = fix1.latitude().to_radians();
-    let phi2 = fix2.latitude().to_radians();
-    let delta_phi = (fix2.latitude() - fix1.latitude()).to_radians();
-    let delta_rho = (fix2.longitude() - fix1.longitude()).to_radians();
-
-    let a = (delta_phi / 2.).sin() * (delta_phi / 2.).sin() +
-        phi1.cos() * phi2.cos() *
-            (delta_rho / 2.).sin() * (delta_rho / 2.).sin();
-
-    let c = 2. * a.sqrt().atan2((1. - a).sqrt());
-
-    R * c
 }
