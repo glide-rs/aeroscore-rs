@@ -1,4 +1,3 @@
-use failure::Error;
 use flat_projection::{FlatProjection, FlatPoint};
 use ord_subset::OrdSubsetIterExt;
 

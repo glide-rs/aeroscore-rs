@@ -1,6 +1,6 @@
 use crate::Point;
 
-pub fn haversine_distance(fix1: &Point, fix2: &Point) -> f64 {
+pub fn haversine_distance(fix1: &dyn Point, fix2: &dyn Point) -> f64 {
     const R: f64 = 6371.; // kilometres
 
     let phi1 = fix1.latitude().to_radians();
