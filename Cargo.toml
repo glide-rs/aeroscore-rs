@@ -31,3 +31,7 @@ serde_json = "^1.0.0"
 [[bench]]
 name = "olc_classic"
 harness = false
+
+[[bench]]
+name = "haversine"
+harness = false
