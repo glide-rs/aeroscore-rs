@@ -9,9 +9,11 @@ use crate::parallel::*;
 
 const LEGS: usize = 6;
 
+pub type Path = [usize; LEGS + 1];
+
 #[derive(Debug)]
 pub struct OptimizationResult {
-    pub point_list: [usize; LEGS + 1],
+    pub point_list: Path,
     pub distance: f32,
 }
 
@@ -87,7 +89,7 @@ fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f32>]) -> Vec<Vec<(usize
 /// Finds the path through the `leg_distance_matrix` with the largest distance
 /// and returns an array with the corresponding `points` indices
 ///
-fn find_max_distance_path<T: Point>(leg_distance_matrix: &[Vec<(usize, f32)>], points: &[T]) -> [usize; LEGS + 1] {
+fn find_max_distance_path<T: Point>(leg_distance_matrix: &[Vec<(usize, f32)>], points: &[T]) -> Path {
     let max_distance_finish_index = leg_distance_matrix[LEGS - 1]
         .iter()
         .enumerate()
@@ -104,7 +106,7 @@ fn find_max_distance_path<T: Point>(leg_distance_matrix: &[Vec<(usize, f32)>], p
     find_path(leg_distance_matrix, max_distance_finish_index)
 }
 
-fn find_path(leg_distance_matrix: &[Vec<(usize, f32)>], finish_index: usize) -> [usize; LEGS + 1] {
+fn find_path(leg_distance_matrix: &[Vec<(usize, f32)>], finish_index: usize) -> Path {
     let mut point_list: [usize; LEGS + 1] = [0; LEGS + 1];
 
     point_list[LEGS] = finish_index;
@@ -120,7 +122,7 @@ fn find_path(leg_distance_matrix: &[Vec<(usize, f32)>], finish_index: usize) -> 
 /// Calculates the total task distance (via haversine algorithm) from
 /// the original `route` and the arry of indices
 ///
-fn calculate_distance<T: Point>(route: &[T], point_list: &[usize]) -> f32 {
+fn calculate_distance<T: Point>(route: &[T], point_list: &Path) -> f32 {
     (0..LEGS)
         .map(|i| (point_list[i], point_list[i + 1]))
         .map(|(i1, i2)| (&route[i1], &route[i2]))
