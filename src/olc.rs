@@ -23,14 +23,13 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     let flat_points = to_flat_points(route);
 
     debug!("Calculating distance matrix");
-    let distance_matrix = calculate_distance_matrix(&flat_points);
+    let distance_matrix = following_dist_matrix(&flat_points);
 
     debug!("Calculating solution graph");
     let graph = Graph::from_distance_matrix(&distance_matrix);
 
     debug!("Searching for best solution");
-    let mut path = graph.find_max_distance_path();
-    path.reverse();
+    let path = graph.find_max_distance_path();
     debug!("Found best solution: {:?}", path);
 
     let distance = calculate_distance(route, &path);
@@ -39,33 +38,34 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     Ok(OptimizationResult { distance, point_list: path })
 }
 
-/// Generates a N*N matrix half-filled with the distances in kilometers between all points.
+/// Generates a N*N matrix half-filled with the distances in kilometers
+/// between all following points.
 ///
 /// - N: Number of points
 ///
 /// ```text
-///  +-----------------------> column
+///  +-----------------------> column/j
+///  | - Y Y Y Y Y Y Y Y Y Y
+///  | - - Y Y Y Y Y Y Y Y Y
+///  | - - - Y Y Y Y Y Y Y Y
+///  | - - - - Y Y Y Y Y Y Y
+///  | - - - - - Y Y Y Y Y Y
+///  | - - - - - - Y Y Y Y Y
+///  | - - - - - - - Y Y Y Y
+///  | - - - - - - - - Y Y Y
+///  | - - - - - - - - - Y Y
+///  | - - - - - - - - - - Y
 ///  | - - - - - - - - - - -
-///  | X - - - - - - - - - -
-///  | X X - - - - - - - - -
-///  | X X X - - - - - - - -
-///  | X X X X - - - - - - -
-///  | X X X X X - - - - - -
-///  | X X X X X X - - - - -
-///  | X X X X X X X - - - -
-///  | X X X X X X X X - - -
-///  | X X X X X X X X X - -
-///  | X X X X X X X X X X -
 ///  v
-/// row
+/// row/i
 /// ```
 ///
-fn calculate_distance_matrix(flat_points: &[FlatPoint<f32>]) -> Vec<Vec<f32>> {
+fn following_dist_matrix(flat_points: &[FlatPoint<f32>]) -> Vec<Vec<f32>> {
     opt_par_iter(flat_points)
         .enumerate()
         .map(|(i, p1)| flat_points
             .iter()
-            .take(i)
+            .skip(i + 1)
             .map(|p2| p1.distance(p2))
             .collect())
         .collect()
@@ -76,30 +76,33 @@ struct Graph {
 }
 
 impl Graph {
-    fn from_distance_matrix(distance_matrix: &[Vec<f32>]) -> Self {
+    fn from_distance_matrix(following_dist_matrix: &[Vec<f32>]) -> Self {
         let mut graph: Vec<Vec<(usize, f32)>> = Vec::with_capacity(LEGS);
 
-        for leg in 0..LEGS {
-            debug!("-- Analyzing leg #{}", leg);
+        // leg: 5 -> 0
+        for leg in (0..LEGS).rev() {
+            debug!("-- Analyzing leg #{}", leg + 1);
 
-            let leg_dists = {
-                let last_leg_dists = if leg == 0 { None } else { Some(&graph[leg - 1]) };
+            let layer = {
+                let last_leg_dists = if leg == LEGS - 1 { None } else { Some(&graph[LEGS - 2 - leg]) };
 
-                opt_into_par_iter(distance_matrix)
-                    .map(|xxxdists| xxxdists
+                opt_into_par_iter(following_dist_matrix)
+                    .enumerate()
+                    .map(|(i, xxxdists)| xxxdists
                         .iter()
                         .enumerate()
                         .map(|(j, leg_dist)| {
-                            let last_leg_dist = last_leg_dists.map_or(0., |last| last[j].1);
+                            let idx = j + i;
+                            let last_leg_dist = last_leg_dists.map_or(0., |last| last[idx].1);
                             let total_dist = last_leg_dist + leg_dist;
-                            (j, total_dist)
+                            (idx, total_dist)
                         })
                         .max_by_key(|&(_, dist)| OrdVar::new_checked(dist))
                         .unwrap_or((0, 0.)))
                     .collect()
             };
 
-            graph.push(leg_dists)
+            graph.push(layer)
         }
 
         Graph { g: graph }
