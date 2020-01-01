@@ -9,7 +9,7 @@ use crate::parallel::*;
 
 const LEGS: usize = 6;
 
-pub type Path = [usize; LEGS + 1];
+pub type Path = Vec<usize>;
 pub type Graph = Vec<Vec<(usize, f32)>>;
 
 #[derive(Debug)]
@@ -91,7 +91,7 @@ fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f32>]) -> Graph {
 /// and returns an array with the corresponding `points` indices
 ///
 fn find_max_distance_path(leg_distance_matrix: &Graph) -> Path {
-    let mut path: Path = [0; LEGS + 1];
+    let mut path = vec![0; LEGS + 1];
 
     path[LEGS] = leg_distance_matrix[LEGS - 1]
         .iter()
@@ -103,6 +103,8 @@ fn find_max_distance_path(leg_distance_matrix: &Graph) -> Path {
     for leg in (0..LEGS).rev() {
         path[leg] = leg_distance_matrix[leg][path[leg + 1]].0;
     }
+
+    assert_eq!(path.len(), LEGS + 1);
 
     path
 }
