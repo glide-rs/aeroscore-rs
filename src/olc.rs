@@ -87,22 +87,48 @@ fn find_graph(distance_matrix: &[Vec<f32>]) -> Graph {
     graph
 }
 
+struct GraphIterator<'a> {
+    graph: &'a Graph,
+    next: Option<(usize, usize)>,
+}
+
+impl Iterator for GraphIterator<'_> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.next.is_none() { return None; }
+
+        let (layer, index) = self.next.unwrap();
+        self.next = if layer == 0 {
+            None
+        } else {
+            let next_layer = layer - 1;
+            let next_index = self.graph[next_layer][index].0;
+            Some((next_layer, next_index))
+        };
+
+        Some(index)
+    }
+}
+
 /// Finds the path through the `leg_distance_matrix` with the largest distance
 /// and returns an array with the corresponding `points` indices
 ///
 fn find_max_distance_path(graph: &Graph) -> Path {
-    let mut path = vec![0; LEGS + 1];
-
-    path[LEGS] = graph[LEGS - 1]
+    let max_distance_index = graph[LEGS - 1]
         .iter()
         .enumerate()
         .max_by_key(|&(_, (_, dist))| OrdVar::new_checked(dist))
-        .map_or(0, |it| it.0);
+        .unwrap()
+        .0;
 
-    // find waypoints
-    for leg in (0..LEGS).rev() {
-        path[leg] = graph[leg][path[leg + 1]].0;
-    }
+    let iter = GraphIterator {
+        graph,
+        next: Some((graph.len(), max_distance_index))
+    };
+
+    let mut path = iter.collect::<Vec<_>>();
+    path.reverse();
 
     assert_eq!(path.len(), LEGS + 1);
 
