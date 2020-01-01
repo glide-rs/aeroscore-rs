@@ -1,3 +1,5 @@
+use cfg_if::*;
+
 cfg_if! {
     if #[cfg(feature = "rayon")] {
         use rayon::slice;
