@@ -116,9 +116,8 @@ fn find_path(leg_distance_matrix: &[Vec<(usize, f32)>], finish_index: usize) -> 
 /// the original `route` and the arry of indices
 ///
 fn calculate_distance<T: Point>(points: &[T], path: &Path) -> f32 {
-    (0..LEGS)
-        .map(|i| (path[i], path[i + 1]))
-        .map(|(i1, i2)| (&points[i1], &points[i2]))
+    path.iter().zip(path.iter().skip(1))
+        .map(|(i1, i2)| (&points[*i1], &points[*i2]))
         .map(|(fix1, fix2)| haversine_distance(fix1, fix2))
         .sum()
 }
