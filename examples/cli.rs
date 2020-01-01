@@ -48,6 +48,8 @@ impl aeroscore::Point for Point {
 
 #[allow(dead_code)]
 fn main() {
+    env_logger::init();
+
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         return help();

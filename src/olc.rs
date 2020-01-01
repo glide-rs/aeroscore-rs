@@ -1,5 +1,6 @@
 use failure::Error;
 use flat_projection::FlatPoint;
+use log::debug;
 use ord_subset::OrdVar;
 
 use crate::Point;
@@ -19,11 +20,17 @@ pub struct OptimizationResult {
 }
 
 pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
+    debug!("Converting {} points to flat points", route.len());
     let flat_points = to_flat_points(route);
+    debug!("Calculating distance matrix");
     let distance_matrix = calculate_distance_matrix(&flat_points);
+    debug!("Calculating solution graph");
     let graph = find_graph(&distance_matrix);
+    debug!("Searching for best solution");
     let point_list = find_max_distance_path(&graph);
+    debug!("Found best solution: {:?}", point_list);
     let distance = calculate_distance(route, &point_list);
+    debug!("Distance for best solution: {} km", distance);
 
     Ok(OptimizationResult { distance, point_list })
 }
@@ -64,6 +71,8 @@ fn find_graph(distance_matrix: &[Vec<f32>]) -> Graph {
     let mut graph: Graph = Vec::with_capacity(LEGS);
 
     for leg in 0..LEGS {
+        debug!("-- Analyzing leg #{}", leg);
+
         let leg_dists = {
             let last_leg_dists = if leg == 0 { None } else { Some(&graph[leg - 1]) };
 
