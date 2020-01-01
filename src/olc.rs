@@ -32,6 +32,9 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     let path = graph.find_max_distance_path();
     debug!("Found best solution: {:?}", path);
 
+    let altitude_delta = find_altitude_delta(&path, &route);
+    debug!("Best solution altitude difference: {:?}m", altitude_delta);
+
     let distance = calculate_distance(route, &path);
     debug!("Distance for best solution: {} km", distance);
 
@@ -164,4 +167,12 @@ fn calculate_distance<T: Point>(points: &[T], path: &Path) -> f32 {
         .map(|(i1, i2)| (&points[*i1], &points[*i2]))
         .map(|(fix1, fix2)| haversine_distance(fix1, fix2))
         .sum()
+}
+
+/// Calculates the altitude difference between the start and the end point
+/// of the given `path`.
+fn find_altitude_delta<T: Point>(path: &Path, points: &[T]) -> i16 {
+    let start_point = &points[*path.first().unwrap()];
+    let end_point = &points[*path.last().unwrap()];
+    start_point.altitude() - end_point.altitude()
 }
