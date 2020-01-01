@@ -11,7 +11,6 @@ use crate::parallel::*;
 const LEGS: usize = 6;
 
 pub type Path = Vec<usize>;
-pub type Graph = Vec<Vec<(usize, f32)>>;
 
 #[derive(Debug)]
 pub struct OptimizationResult {
@@ -27,10 +26,10 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     let distance_matrix = calculate_distance_matrix(&flat_points);
 
     debug!("Calculating solution graph");
-    let graph = find_graph(&distance_matrix);
+    let graph = Graph::from_distance_matrix(&distance_matrix);
 
     debug!("Searching for best solution");
-    let mut path = find_max_distance_path(&graph);
+    let mut path = graph.find_max_distance_path();
     path.reverse();
     debug!("Found best solution: {:?}", path);
 
@@ -72,33 +71,62 @@ fn calculate_distance_matrix(flat_points: &[FlatPoint<f32>]) -> Vec<Vec<f32>> {
         .collect()
 }
 
-fn find_graph(distance_matrix: &[Vec<f32>]) -> Graph {
-    let mut graph: Graph = Vec::with_capacity(LEGS);
+struct Graph {
+    g: Vec<Vec<(usize, f32)>>,
+}
 
-    for leg in 0..LEGS {
-        debug!("-- Analyzing leg #{}", leg);
+impl Graph {
+    fn from_distance_matrix(distance_matrix: &[Vec<f32>]) -> Self {
+        let mut graph: Vec<Vec<(usize, f32)>> = Vec::with_capacity(LEGS);
 
-        let leg_dists = {
-            let last_leg_dists = if leg == 0 { None } else { Some(&graph[leg - 1]) };
+        for leg in 0..LEGS {
+            debug!("-- Analyzing leg #{}", leg);
 
-            opt_into_par_iter(distance_matrix)
-                .map(|xxxdists| xxxdists
-                    .iter()
-                    .enumerate()
-                    .map(|(j, leg_dist)| {
-                        let last_leg_dist = last_leg_dists.map_or(0., |last| last[j].1);
-                        let total_dist = last_leg_dist + leg_dist;
-                        (j, total_dist)
-                    })
-                    .max_by_key(|&(_, dist)| OrdVar::new_checked(dist))
-                    .unwrap_or((0, 0.)))
-                .collect()
-        };
+            let leg_dists = {
+                let last_leg_dists = if leg == 0 { None } else { Some(&graph[leg - 1]) };
 
-        graph.push(leg_dists)
+                opt_into_par_iter(distance_matrix)
+                    .map(|xxxdists| xxxdists
+                        .iter()
+                        .enumerate()
+                        .map(|(j, leg_dist)| {
+                            let last_leg_dist = last_leg_dists.map_or(0., |last| last[j].1);
+                            let total_dist = last_leg_dist + leg_dist;
+                            (j, total_dist)
+                        })
+                        .max_by_key(|&(_, dist)| OrdVar::new_checked(dist))
+                        .unwrap_or((0, 0.)))
+                    .collect()
+            };
+
+            graph.push(leg_dists)
+        }
+
+        Graph { g: graph }
     }
 
-    graph
+    /// Finds the path through the `leg_distance_matrix` with the largest distance
+    /// and returns an array with the corresponding `points` indices
+    ///
+    fn find_max_distance_path(&self) -> Path {
+        let max_distance_index = self.g[LEGS - 1]
+            .iter()
+            .enumerate()
+            .max_by_key(|&(_, (_, dist))| OrdVar::new_checked(dist))
+            .unwrap()
+            .0;
+
+        let iter = GraphIterator {
+            graph: self,
+            next: Some((self.g.len(), max_distance_index))
+        };
+
+        let path = iter.collect::<Vec<_>>();
+
+        assert_eq!(path.len(), LEGS + 1);
+
+        path
+    }
 }
 
 struct GraphIterator<'a> {
@@ -117,35 +145,12 @@ impl Iterator for GraphIterator<'_> {
             None
         } else {
             let next_layer = layer - 1;
-            let next_index = self.graph[next_layer][index].0;
+            let next_index = self.graph.g[next_layer][index].0;
             Some((next_layer, next_index))
         };
 
         Some(index)
     }
-}
-
-/// Finds the path through the `leg_distance_matrix` with the largest distance
-/// and returns an array with the corresponding `points` indices
-///
-fn find_max_distance_path(graph: &Graph) -> Path {
-    let max_distance_index = graph[LEGS - 1]
-        .iter()
-        .enumerate()
-        .max_by_key(|&(_, (_, dist))| OrdVar::new_checked(dist))
-        .unwrap()
-        .0;
-
-    let iter = GraphIterator {
-        graph,
-        next: Some((graph.len(), max_distance_index))
-    };
-
-    let path = iter.collect::<Vec<_>>();
-
-    assert_eq!(path.len(), LEGS + 1);
-
-    path
 }
 
 /// Calculates the total task distance (via haversine algorithm) from
