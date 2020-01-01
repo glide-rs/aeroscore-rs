@@ -98,7 +98,7 @@ fn find_max_distance_path<T: Point>(leg_distance_matrix: &[Vec<(usize, f32)>], p
             let finish = &points[finish_index];
             finish.altitude() + 1000 >= start.altitude()
         })
-        .ord_subset_max_by_key(|&(_, dist)| dist)
+        .ord_subset_max_by_key(|&(_, (_, dist))| dist)
         .map_or(0, |it| it.0);
 
     find_path(leg_distance_matrix, max_distance_finish_index)
