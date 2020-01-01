@@ -1,6 +1,6 @@
 use failure::Error;
 use flat_projection::FlatPoint;
-use ord_subset::OrdSubsetIterExt;
+use ord_subset::OrdVar;
 
 use crate::Point;
 use crate::flat::to_flat_points;
@@ -76,7 +76,7 @@ fn find_graph(distance_matrix: &[Vec<f32>]) -> Graph {
                         let total_dist = last_leg_dist + leg_dist;
                         (j, total_dist)
                     })
-                    .ord_subset_max_by_key(|&(_, dist)| dist)
+                    .max_by_key(|&(_, dist)| OrdVar::new_checked(dist))
                     .unwrap_or((0, 0.)))
                 .collect()
         };
@@ -96,7 +96,7 @@ fn find_max_distance_path(graph: &Graph) -> Path {
     path[LEGS] = graph[LEGS - 1]
         .iter()
         .enumerate()
-        .ord_subset_max_by_key(|&(_, (_, dist))| dist)
+        .max_by_key(|&(_, (_, dist))| OrdVar::new_checked(dist))
         .map_or(0, |it| it.0);
 
     // find waypoints
