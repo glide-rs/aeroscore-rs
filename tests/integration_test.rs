@@ -31,6 +31,7 @@ fn distance_for_78e_6ng() {
     let release = Time::from_hms(10, 28, 05);
     let result = run_test(include_str!("fixtures/2017-08-14-fla-6ng-01.igc"), release);
     assert_approx_eq!(result.distance, 501.3, 0.1);
+    assert_eq!(result.point_list, vec![197, 1224, 2080, 3492, 4946, 5504, 6103]);
 }
 
 #[test]
@@ -38,6 +39,7 @@ fn distance_for_87i_qqk() {
     let release = Time::from_hms(09, 02, 05);
     let result = run_test(include_str!("fixtures/87ilqqk1.igc"), release);
     assert_approx_eq!(result.distance, 782.74, 0.1);
+    assert_eq!(result.point_list, vec![4, 1128, 1666, 4347, 6070, 6681, 7205]);
 }
 
 #[test]
@@ -45,6 +47,7 @@ fn distance_for_99b_7r9() {
     let release = Time::from_hms(16, 54, 06);
     let result = run_test(include_str!("fixtures/99bv7r92.igc"), release);
     assert_approx_eq!(result.distance, 197.14, 0.1);
+    assert_eq!(result.point_list, vec![106, 5041, 5927, 6388, 6731, 10294, 15398]);
 }
 
 fn run_test(file: &str, release: Time) -> OptimizationResult {
