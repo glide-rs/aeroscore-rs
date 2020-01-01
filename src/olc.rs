@@ -21,8 +21,8 @@ pub struct OptimizationResult {
 pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     let flat_points = to_flat_points(route);
     let distance_matrix = calculate_distance_matrix(&flat_points);
-    let leg_distance_matrix = calculate_leg_distance_matrix(&distance_matrix);
-    let point_list = find_max_distance_path(&leg_distance_matrix);
+    let graph = find_graph(&distance_matrix);
+    let point_list = find_max_distance_path(&graph);
     let distance = calculate_distance(route, &point_list);
 
     Ok(OptimizationResult { distance, point_list })
@@ -60,12 +60,12 @@ fn calculate_distance_matrix(flat_points: &[FlatPoint<f32>]) -> Vec<Vec<f32>> {
         .collect()
 }
 
-fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f32>]) -> Graph {
-    let mut dists: Graph = Vec::with_capacity(LEGS);
+fn find_graph(distance_matrix: &[Vec<f32>]) -> Graph {
+    let mut graph: Graph = Vec::with_capacity(LEGS);
 
     for leg in 0..LEGS {
         let leg_dists = {
-            let last_leg_dists = if leg == 0 { None } else { Some(&dists[leg - 1]) };
+            let last_leg_dists = if leg == 0 { None } else { Some(&graph[leg - 1]) };
 
             opt_into_par_iter(distance_matrix)
                 .map(|xxxdists| xxxdists
@@ -81,19 +81,19 @@ fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f32>]) -> Graph {
                 .collect()
         };
 
-        dists.push(leg_dists)
+        graph.push(leg_dists)
     }
 
-    dists
+    graph
 }
 
 /// Finds the path through the `leg_distance_matrix` with the largest distance
 /// and returns an array with the corresponding `points` indices
 ///
-fn find_max_distance_path(leg_distance_matrix: &Graph) -> Path {
+fn find_max_distance_path(graph: &Graph) -> Path {
     let mut path = vec![0; LEGS + 1];
 
-    path[LEGS] = leg_distance_matrix[LEGS - 1]
+    path[LEGS] = graph[LEGS - 1]
         .iter()
         .enumerate()
         .ord_subset_max_by_key(|&(_, (_, dist))| dist)
@@ -101,7 +101,7 @@ fn find_max_distance_path(leg_distance_matrix: &Graph) -> Path {
 
     // find waypoints
     for leg in (0..LEGS).rev() {
-        path[leg] = leg_distance_matrix[leg][path[leg + 1]].0;
+        path[leg] = graph[leg][path[leg + 1]].0;
     }
 
     assert_eq!(path.len(), LEGS + 1);
