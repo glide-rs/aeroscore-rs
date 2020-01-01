@@ -25,11 +25,13 @@ impl aeroscore::Point for Point {
 }
 
 #[test]
-fn it_works() {
+fn distance_for_78e_6ng() {
     let release_seconds = 10 * 3600 + 28 * 60 + 5;
+    run_test(include_str!("fixtures/2017-08-14-fla-6ng-01.igc"), release_seconds, 501.3);
+}
 
-    let fixes = include_str!("fixtures/2017-08-14-fla-6ng-01.igc")
-        .lines()
+fn run_test(file: &str, release_seconds: u32, expected_distance: f32) {
+    let fixes = file.lines()
         .filter(|l| l.starts_with('B'))
         .filter_map(|line| igc::records::BRecord::parse(&line).ok()
             .map_or(None, |record| {
@@ -47,5 +49,5 @@ fn it_works() {
 
     let result = olc::optimize(&fixes).unwrap();
 
-    assert_approx_eq!(result.distance, 501.3, 0.1);
+    assert_approx_eq!(result.distance, expected_distance, 0.1);
 }
