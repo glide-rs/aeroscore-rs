@@ -44,6 +44,8 @@ fn distance_for_99b_7r9() {
 }
 
 fn run_test(file: &str, release: Time, expected_distance: f32) {
+    env_logger::try_init().ok();
+
     let fixes = file.lines()
         .filter(|l| l.starts_with('B'))
         .filter_map(|line| igc::records::BRecord::parse(&line).ok()
