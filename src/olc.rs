@@ -90,26 +90,20 @@ fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f32>]) -> Vec<Vec<(usize
 /// and returns an array with the corresponding `points` indices
 ///
 fn find_max_distance_path(leg_distance_matrix: &[Vec<(usize, f32)>]) -> Path {
-    let max_distance_finish_index = leg_distance_matrix[LEGS - 1]
+    let mut path: Path = [0; LEGS + 1];
+
+    path[LEGS] = leg_distance_matrix[LEGS - 1]
         .iter()
         .enumerate()
         .ord_subset_max_by_key(|&(_, (_, dist))| dist)
         .map_or(0, |it| it.0);
 
-    find_path(leg_distance_matrix, max_distance_finish_index)
-}
-
-fn find_path(leg_distance_matrix: &[Vec<(usize, f32)>], finish_index: usize) -> Path {
-    let mut point_list: [usize; LEGS + 1] = [0; LEGS + 1];
-
-    point_list[LEGS] = finish_index;
-
     // find waypoints
     for leg in (0..LEGS).rev() {
-        point_list[leg] = leg_distance_matrix[leg][point_list[leg + 1]].0;
+        path[leg] = leg_distance_matrix[leg][path[leg + 1]].0;
     }
 
-    point_list
+    path
 }
 
 /// Calculates the total task distance (via haversine algorithm) from
