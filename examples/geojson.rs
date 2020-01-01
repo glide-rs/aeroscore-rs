@@ -12,16 +12,16 @@ use std::fs::File;
 use aeroscore::olc;
 
 struct Point {
-    latitude: f64,
-    longitude: f64,
+    latitude: f32,
+    longitude: f32,
     altitude: i16,
 }
 
 impl aeroscore::Point for Point {
-    fn latitude(&self) -> f64 {
+    fn latitude(&self) -> f32 {
         self.latitude
     }
-    fn longitude(&self) -> f64 {
+    fn longitude(&self) -> f32 {
         self.longitude
     }
     fn altitude(&self) -> i16 {
