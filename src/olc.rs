@@ -10,6 +10,7 @@ use crate::parallel::*;
 const LEGS: usize = 6;
 
 pub type Path = [usize; LEGS + 1];
+pub type Graph = Vec<Vec<(usize, f32)>>;
 
 #[derive(Debug)]
 pub struct OptimizationResult {
@@ -59,8 +60,8 @@ fn calculate_distance_matrix(flat_points: &[FlatPoint<f32>]) -> Vec<Vec<f32>> {
         .collect()
 }
 
-fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f32>]) -> Vec<Vec<(usize, f32)>> {
-    let mut dists: Vec<Vec<(usize, f32)>> = Vec::with_capacity(LEGS);
+fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f32>]) -> Graph {
+    let mut dists: Graph = Vec::with_capacity(LEGS);
 
     for leg in 0..LEGS {
         let leg_dists = {
@@ -89,7 +90,7 @@ fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f32>]) -> Vec<Vec<(usize
 /// Finds the path through the `leg_distance_matrix` with the largest distance
 /// and returns an array with the corresponding `points` indices
 ///
-fn find_max_distance_path(leg_distance_matrix: &[Vec<(usize, f32)>]) -> Path {
+fn find_max_distance_path(leg_distance_matrix: &Graph) -> Path {
     let mut path: Path = [0; LEGS + 1];
 
     path[LEGS] = leg_distance_matrix[LEGS - 1]
