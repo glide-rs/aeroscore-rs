@@ -115,10 +115,10 @@ fn find_path(leg_distance_matrix: &[Vec<(usize, f32)>], finish_index: usize) -> 
 /// Calculates the total task distance (via haversine algorithm) from
 /// the original `route` and the arry of indices
 ///
-fn calculate_distance<T: Point>(route: &[T], point_list: &Path) -> f32 {
+fn calculate_distance<T: Point>(points: &[T], path: &Path) -> f32 {
     (0..LEGS)
-        .map(|i| (point_list[i], point_list[i + 1]))
-        .map(|(i1, i2)| (&route[i1], &route[i2]))
+        .map(|i| (path[i], path[i + 1]))
+        .map(|(i1, i2)| (&points[i1], &points[i2]))
         .map(|(fix1, fix2)| haversine_distance(fix1, fix2))
         .sum()
 }
