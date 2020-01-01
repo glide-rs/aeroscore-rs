@@ -12,7 +12,7 @@ const LEGS: usize = 6;
 #[derive(Debug)]
 pub struct OptimizationResult {
     pub point_list: [usize; LEGS + 1],
-    pub distance: f64,
+    pub distance: f32,
 }
 
 pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
@@ -46,7 +46,7 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
 /// row
 /// ```
 ///
-fn calculate_distance_matrix(flat_points: &[FlatPoint<f64>]) -> Vec<Vec<f64>> {
+fn calculate_distance_matrix(flat_points: &[FlatPoint<f32>]) -> Vec<Vec<f32>> {
     opt_par_iter(flat_points)
         .enumerate()
         .map(|(i, p1)| flat_points
@@ -57,8 +57,8 @@ fn calculate_distance_matrix(flat_points: &[FlatPoint<f64>]) -> Vec<Vec<f64>> {
         .collect()
 }
 
-fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f64>]) -> Vec<Vec<(usize, f64)>> {
-    let mut dists: Vec<Vec<(usize, f64)>> = Vec::with_capacity(LEGS);
+fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f32>]) -> Vec<Vec<(usize, f32)>> {
+    let mut dists: Vec<Vec<(usize, f32)>> = Vec::with_capacity(LEGS);
 
     for leg in 0..LEGS {
         let leg_dists = {
@@ -87,7 +87,7 @@ fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f64>]) -> Vec<Vec<(usize
 /// Finds the path through the `leg_distance_matrix` with the largest distance
 /// and returns an array with the corresponding `points` indices
 ///
-fn find_max_distance_path<T: Point>(leg_distance_matrix: &[Vec<(usize, f64)>], points: &[T]) -> [usize; LEGS + 1] {
+fn find_max_distance_path<T: Point>(leg_distance_matrix: &[Vec<(usize, f32)>], points: &[T]) -> [usize; LEGS + 1] {
     let max_distance_finish_index = leg_distance_matrix[LEGS - 1]
         .iter()
         .enumerate()
@@ -104,7 +104,7 @@ fn find_max_distance_path<T: Point>(leg_distance_matrix: &[Vec<(usize, f64)>], p
     find_path(leg_distance_matrix, max_distance_finish_index)
 }
 
-fn find_path(leg_distance_matrix: &[Vec<(usize, f64)>], finish_index: usize) -> [usize; LEGS + 1] {
+fn find_path(leg_distance_matrix: &[Vec<(usize, f32)>], finish_index: usize) -> [usize; LEGS + 1] {
     let mut point_list: [usize; LEGS + 1] = [0; LEGS + 1];
 
     point_list[LEGS] = finish_index;
@@ -120,7 +120,7 @@ fn find_path(leg_distance_matrix: &[Vec<(usize, f64)>], finish_index: usize) -> 
 /// Calculates the total task distance (via haversine algorithm) from
 /// the original `route` and the arry of indices
 ///
-fn calculate_distance<T: Point>(route: &[T], point_list: &[usize]) -> f64 {
+fn calculate_distance<T: Point>(route: &[T], point_list: &[usize]) -> f32 {
     (0..LEGS)
         .map(|i| (point_list[i], point_list[i + 1]))
         .map(|(i1, i2)| (&route[i1], &route[i2]))

@@ -1,5 +1,5 @@
 pub trait Point: Sync {
-    fn latitude(&self) -> f64;
-    fn longitude(&self) -> f64;
+    fn latitude(&self) -> f32;
+    fn longitude(&self) -> f32;
     fn altitude(&self) -> i16;
 }
