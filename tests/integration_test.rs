@@ -33,7 +33,7 @@ fn it_works() {
         .filter(|l| l.starts_with('B'))
         .filter_map(|line| igc::records::BRecord::parse(&line).ok()
             .map_or(None, |record| {
-                if seconds_since_midnight(&record.timestamp) >= release_seconds {
+                if record.timestamp.seconds_since_midnight() >= release_seconds {
                     Some(Point {
                         latitude: record.pos.lat.into(),
                         longitude: record.pos.lon.into(),
@@ -48,8 +48,4 @@ fn it_works() {
     let result = olc::optimize(&fixes).unwrap();
 
     assert_approx_eq!(result.distance, 501.3, 0.1);
-}
-
-fn seconds_since_midnight(time: &igc::util::Time) -> i32 {
-    time.hours as i32 * 60 * 60 + time.minutes as i32 * 60 + time.seconds as i32
 }
