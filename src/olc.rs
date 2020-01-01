@@ -38,7 +38,7 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     let distance = calculate_distance(route, &path);
     debug!("Distance for best solution: {} km", distance);
 
-    Ok(OptimizationResult { distance, point_list: path })
+    Ok(OptimizationResult { distance, path })
 }
 
 /// Generates a N*N matrix half-filled with the distances in kilometers

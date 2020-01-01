@@ -56,7 +56,7 @@ fn analyze(path: &str) {
 
     let result = olc::optimize(&fixes).unwrap();
 
-    let result_coords = result.point_list.iter()
+    let result_coords = result.path.iter()
         .map(|i| &fixes[*i])
         .map(|p| (p.longitude, p.latitude))
         .collect::<Vec<_>>();
