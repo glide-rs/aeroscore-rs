@@ -22,17 +22,22 @@ pub struct OptimizationResult {
 pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     debug!("Converting {} points to flat points", route.len());
     let flat_points = to_flat_points(route);
+
     debug!("Calculating distance matrix");
     let distance_matrix = calculate_distance_matrix(&flat_points);
+
     debug!("Calculating solution graph");
     let graph = find_graph(&distance_matrix);
+
     debug!("Searching for best solution");
-    let point_list = find_max_distance_path(&graph);
-    debug!("Found best solution: {:?}", point_list);
-    let distance = calculate_distance(route, &point_list);
+    let mut path = find_max_distance_path(&graph);
+    path.reverse();
+    debug!("Found best solution: {:?}", path);
+
+    let distance = calculate_distance(route, &path);
     debug!("Distance for best solution: {} km", distance);
 
-    Ok(OptimizationResult { distance, point_list })
+    Ok(OptimizationResult { distance, point_list: path })
 }
 
 /// Generates a N*N matrix half-filled with the distances in kilometers between all points.
@@ -136,8 +141,7 @@ fn find_max_distance_path(graph: &Graph) -> Path {
         next: Some((graph.len(), max_distance_index))
     };
 
-    let mut path = iter.collect::<Vec<_>>();
-    path.reverse();
+    let path = iter.collect::<Vec<_>>();
 
     assert_eq!(path.len(), LEGS + 1);
 
