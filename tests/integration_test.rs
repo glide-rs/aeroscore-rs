@@ -34,13 +34,13 @@ fn distance_for_78e_6ng() {
 #[test]
 fn distance_for_87i_qqk() {
     let release = Time::from_hms(09, 02, 05);
-    run_test(include_str!("fixtures/87ilqqk1.igc"), release, 779.3);
+    run_test(include_str!("fixtures/87ilqqk1.igc"), release, 782.74);
 }
 
 #[test]
 fn distance_for_99b_7r9() {
     let release = Time::from_hms(16, 54, 06);
-    run_test(include_str!("fixtures/99bv7r92.igc"), release, 115.86);
+    run_test(include_str!("fixtures/99bv7r92.igc"), release, 197.14);
 }
 
 fn run_test(file: &str, release: Time, expected_distance: f32) {
