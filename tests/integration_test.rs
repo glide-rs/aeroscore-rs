@@ -30,6 +30,12 @@ fn distance_for_78e_6ng() {
     run_test(include_str!("fixtures/2017-08-14-fla-6ng-01.igc"), release_seconds, 501.3);
 }
 
+#[test]
+fn distance_for_87i_qqk() {
+    let release_seconds = 9 * 3600 + 2 * 60 + 5;
+    run_test(include_str!("fixtures/87ilqqk1.igc"), release_seconds, 779.3);
+}
+
 fn run_test(file: &str, release_seconds: u32, expected_distance: f32) {
     let fixes = file.lines()
         .filter(|l| l.starts_with('B'))
