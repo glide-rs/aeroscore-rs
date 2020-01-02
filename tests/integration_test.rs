@@ -61,7 +61,7 @@ fn run_test(file: &str, release: Time) -> OptimizationResult {
                     Some(Point {
                         latitude: record.pos.lat.into(),
                         longitude: record.pos.lon.into(),
-                        altitude: record.gps_alt,
+                        altitude: record.pressure_alt,
                     })
                 } else {
                     None

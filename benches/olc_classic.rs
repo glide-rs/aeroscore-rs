@@ -34,7 +34,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 .map(|record| Point {
                     latitude: record.pos.lat.into(),
                     longitude: record.pos.lon.into(),
-                    altitude: record.gps_alt,
+                    altitude: record.pressure_alt,
                 }))
             .collect::<Vec<_>>();
 
