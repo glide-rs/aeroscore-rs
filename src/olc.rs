@@ -1,6 +1,6 @@
 use failure::Error;
 use flat_projection::FlatPoint;
-use log::debug;
+use log::{debug, trace};
 use ord_subset::OrdVar;
 
 use crate::Point;
@@ -30,7 +30,7 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
 
     debug!("Searching for best valid solution");
     let mut best_valid = graph.find_best_valid_solution(&route);
-    debug!("Found best valid solution: {:?} ({:.3} km)", best_valid.path, calculate_distance(route, &best_valid.path));
+    debug!("-- New best solution: {:.3} km -> {:?}", calculate_distance(route, &best_valid.path), best_valid.path);
 
     debug!("Searching for potentially better solutions");
     let mut start_candidates: Vec<_> = graph.g[LEGS - 1].iter()
@@ -40,22 +40,23 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
         .collect();
 
     start_candidates.sort_by_key(|it| OrdVar::new_checked(it.distance));
+    debug!("{} potentially better start points found", start_candidates.len());
 
     while let Some(candidate) = start_candidates.pop() {
-        debug!("{} potentially better start points left", start_candidates.len());
-
         debug!("Calculating solution graph with start point at index {}", candidate.start_index);
         let candidate_graph = Graph::for_start_index(candidate.start_index, &dist_matrix);
 
         let best_valid_for_candidate = candidate_graph.find_best_valid_solution(&route);
-        debug!("Found best valid solution for start point at index {}: {:?} ({:.3} km)", candidate.start_index, best_valid_for_candidate.path, calculate_distance(route, &best_valid_for_candidate.path));
-
         if best_valid_for_candidate.distance > best_valid.distance {
-            debug!("New best solution: {:.3} km", calculate_distance(route, &best_valid_for_candidate.path));
             best_valid = best_valid_for_candidate;
+            debug!("-- New best solution: {:.3} km -> {:?}", calculate_distance(route, &best_valid.path), best_valid.path);
+
+            start_candidates.retain(|it| it.distance > best_valid.distance);
+        } else {
+            debug!("Discarding solution with {:.3} km", calculate_distance(route, &best_valid_for_candidate.path));
         }
 
-        start_candidates.retain(|it| it.distance > best_valid.distance);
+        debug!("{} potentially better start points left", start_candidates.len());
     }
 
     let distance = calculate_distance(route, &best_valid.path);
@@ -96,7 +97,7 @@ impl Graph {
         // layer: 0 / leg: 6
         //
         // assuming X is the fifth turnpoint, what is the furthest away finish point
-        debug!("-- Analyzing leg #{}", 6);
+        trace!("-- Analyzing leg #{}", 6);
 
         let layer = opt_par_iter(dist_matrix)
             .enumerate()
@@ -111,7 +112,7 @@ impl Graph {
         graph.push(layer);
 
         for layer_index in 1..LEGS {
-            debug!("-- Analyzing leg #{}", LEGS - layer_index);
+            trace!("-- Analyzing leg #{}", LEGS - layer_index);
 
             // layer: 1 / leg: 5
             //
@@ -157,7 +158,7 @@ impl Graph {
     fn for_start_index(start_index: usize, dist_matrix: &[Vec<f32>]) -> Self {
         let mut graph: Vec<Vec<GraphCell>> = Vec::with_capacity(LEGS);
 
-        debug!("-- Analyzing leg #{}", 1);
+        trace!("-- Analyzing leg #{}", 1);
 
         // layer: 0 / leg: 1
         //
@@ -171,7 +172,7 @@ impl Graph {
         graph.push(layer);
 
         for layer_index in 1..LEGS {
-            debug!("-- Analyzing leg #{}", layer_index + 1);
+            trace!("-- Analyzing leg #{}", layer_index + 1);
 
             // layer: 1 / leg: 2
             //
