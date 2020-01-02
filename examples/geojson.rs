@@ -50,13 +50,13 @@ fn analyze(path: &str) {
             .map(|record| Point {
                 latitude: record.pos.lat.into(),
                 longitude: record.pos.lon.into(),
-                altitude: record.gps_alt,
+                altitude: record.pressure_alt,
             }))
         .collect::<Vec<_>>();
 
     let result = olc::optimize(&fixes).unwrap();
 
-    let result_coords = result.point_list.iter()
+    let result_coords = result.path.iter()
         .map(|i| &fixes[*i])
         .map(|p| (p.longitude, p.latitude))
         .collect::<Vec<_>>();

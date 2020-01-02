@@ -48,6 +48,8 @@ impl aeroscore::Point for Point {
 
 #[allow(dead_code)]
 fn main() {
+    env_logger::init();
+
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         return help();
@@ -70,7 +72,7 @@ fn analyze(path: &str) {
                 time: record.timestamp,
                 latitude: record.pos.lat.into(),
                 longitude: record.pos.lon.into(),
-                altitude: record.gps_alt,
+                altitude: record.pressure_alt,
             }))
         .collect::<Vec<_>>();
 
@@ -79,13 +81,13 @@ fn analyze(path: &str) {
 
     let result = olc::optimize(&fixes).unwrap();
 
-    println!("{:5}:  {:?}", result.point_list[0], fixes[result.point_list[0]]);
-    println!("{:5}:  {:?}", result.point_list[1], fixes[result.point_list[1]]);
-    println!("{:5}:  {:?}", result.point_list[2], fixes[result.point_list[2]]);
-    println!("{:5}:  {:?}", result.point_list[3], fixes[result.point_list[3]]);
-    println!("{:5}:  {:?}", result.point_list[4], fixes[result.point_list[4]]);
-    println!("{:5}:  {:?}", result.point_list[5], fixes[result.point_list[5]]);
-    println!("{:5}:  {:?}", result.point_list[6], fixes[result.point_list[6]]);
+    println!("{:5}:  {:?}", result.path[0], fixes[result.path[0]]);
+    println!("{:5}:  {:?}", result.path[1], fixes[result.path[1]]);
+    println!("{:5}:  {:?}", result.path[2], fixes[result.path[2]]);
+    println!("{:5}:  {:?}", result.path[3], fixes[result.path[3]]);
+    println!("{:5}:  {:?}", result.path[4], fixes[result.path[4]]);
+    println!("{:5}:  {:?}", result.path[5], fixes[result.path[5]]);
+    println!("{:5}:  {:?}", result.path[6], fixes[result.path[6]]);
     println!();
     println!("distance: {:.2} km", result.distance);
 }

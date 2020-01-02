@@ -1,6 +1,7 @@
 use failure::Error;
 use flat_projection::FlatPoint;
-use ord_subset::OrdSubsetIterExt;
+use log::{debug, trace};
+use ord_subset::OrdVar;
 
 use crate::Point;
 use crate::flat::to_flat_points;
@@ -9,121 +10,283 @@ use crate::parallel::*;
 
 const LEGS: usize = 6;
 
+pub type Path = Vec<usize>;
+
 #[derive(Debug)]
 pub struct OptimizationResult {
-    pub point_list: [usize; LEGS + 1],
+    pub path: Path,
     pub distance: f32,
 }
 
 pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
+    debug!("Converting {} points to flat points", route.len());
     let flat_points = to_flat_points(route);
-    let distance_matrix = calculate_distance_matrix(&flat_points);
-    let leg_distance_matrix = calculate_leg_distance_matrix(&distance_matrix);
-    let point_list = find_max_distance_path(&leg_distance_matrix, route);
-    let distance = calculate_distance(route, &point_list);
 
-    Ok(OptimizationResult { distance, point_list })
+    debug!("Calculating distance matrix (finish -> start)");
+    let dist_matrix = full_dist_matrix(&flat_points);
+
+    debug!("Calculating solution graph");
+    let graph = Graph::from_distance_matrix(&dist_matrix);
+
+    debug!("Searching for best valid solution");
+    let mut best_valid = graph.find_best_valid_solution(&route);
+    debug!("-- New best solution: {:.3} km -> {:?}", calculate_distance(route, &best_valid.path), best_valid.path);
+
+    debug!("Searching for potentially better solutions");
+    let mut start_candidates: Vec<_> = graph.g[LEGS - 1].iter()
+        .enumerate()
+        .filter(|(_, cell)| cell.distance > best_valid.distance)
+        .map(|(start_index, cell)| StartCandidate { distance: cell.distance, start_index })
+        .collect();
+
+    start_candidates.sort_by_key(|it| OrdVar::new_checked(it.distance));
+    debug!("{} potentially better start points found", start_candidates.len());
+
+    while let Some(candidate) = start_candidates.pop() {
+        debug!("Calculating solution graph with start point at index {}", candidate.start_index);
+        let candidate_graph = Graph::for_start_index(candidate.start_index, &dist_matrix);
+
+        let best_valid_for_candidate = candidate_graph.find_best_valid_solution(&route);
+        if best_valid_for_candidate.distance > best_valid.distance {
+            best_valid = best_valid_for_candidate;
+            debug!("-- New best solution: {:.3} km -> {:?}", calculate_distance(route, &best_valid.path), best_valid.path);
+
+            start_candidates.retain(|it| it.distance > best_valid.distance);
+        } else {
+            debug!("Discarding solution with {:.3} km", calculate_distance(route, &best_valid_for_candidate.path));
+        }
+
+        debug!("{} potentially better start points left", start_candidates.len());
+    }
+
+    let distance = calculate_distance(route, &best_valid.path);
+    debug!("Solution: {:?} ({:.3} km)", best_valid.path, distance);
+
+    Ok(OptimizationResult { distance, path: best_valid.path })
 }
 
-/// Generates a N*N matrix half-filled with the distances in kilometers between all points.
-///
-/// - N: Number of points
-///
-/// ```text
-///  +-----------------------> column
-///  | - - - - - - - - - - -
-///  | X - - - - - - - - - -
-///  | X X - - - - - - - - -
-///  | X X X - - - - - - - -
-///  | X X X X - - - - - - -
-///  | X X X X X - - - - - -
-///  | X X X X X X - - - - -
-///  | X X X X X X X - - - -
-///  | X X X X X X X X - - -
-///  | X X X X X X X X X - -
-///  | X X X X X X X X X X -
-///  v
-/// row
-/// ```
-///
-fn calculate_distance_matrix(flat_points: &[FlatPoint<f32>]) -> Vec<Vec<f32>> {
+#[derive(Debug)]
+struct StartCandidate {
+    distance: f32,
+    start_index: usize,
+}
+
+/// Generates a N*N matrix with the distances in kilometers between all points.
+fn full_dist_matrix(flat_points: &[FlatPoint<f32>]) -> Vec<Vec<f32>> {
     opt_par_iter(flat_points)
-        .enumerate()
-        .map(|(i, p1)| flat_points
-            .iter()
-            .take(i)
+        .map(|p1| flat_points.iter()
             .map(|p2| p1.distance(p2))
             .collect())
         .collect()
 }
 
-fn calculate_leg_distance_matrix(distance_matrix: &[Vec<f32>]) -> Vec<Vec<(usize, f32)>> {
-    let mut dists: Vec<Vec<(usize, f32)>> = Vec::with_capacity(LEGS);
+struct Graph {
+    g: Vec<Vec<GraphCell>>,
+}
 
-    for leg in 0..LEGS {
-        let leg_dists = {
-            let last_leg_dists = if leg == 0 { None } else { Some(&dists[leg - 1]) };
+#[derive(Debug)]
+struct GraphCell {
+    prev_index: usize,
+    distance: f32,
+}
 
-            opt_into_par_iter(distance_matrix)
-                .map(|xxxdists| xxxdists
-                    .iter()
-                    .enumerate()
-                    .map(|(j, leg_dist)| {
-                        let last_leg_dist = last_leg_dists.map_or(0., |last| last[j].1);
-                        let total_dist = last_leg_dist + leg_dist;
-                        (j, total_dist)
-                    })
-                    .ord_subset_max_by_key(|&(_, dist)| dist)
-                    .unwrap_or((0, 0.)))
-                .collect()
+impl Graph {
+    fn from_distance_matrix(dist_matrix: &[Vec<f32>]) -> Self {
+        let mut graph: Vec<Vec<GraphCell>> = Vec::with_capacity(LEGS);
+
+        // layer: 0 / leg: 6
+        //
+        // assuming X is the fifth turnpoint, what is the furthest away finish point
+        trace!("-- Analyzing leg #{}", 6);
+
+        let layer = opt_par_iter(dist_matrix)
+            .enumerate()
+            .map(|(tp_index, distances)| distances.iter()
+                .enumerate()
+                .skip(tp_index)
+                .map(|(finish_index, &distance)| GraphCell { prev_index: finish_index, distance })
+                .max_by_key(|cell| OrdVar::new_checked(cell.distance))
+                .unwrap())
+            .collect();
+
+        graph.push(layer);
+
+        for layer_index in 1..LEGS {
+            trace!("-- Analyzing leg #{}", LEGS - layer_index);
+
+            // layer: 1 / leg: 5
+            //
+            // assuming X is the fourth turnpoint, what is the fifth turnpoint
+            // that results in the highest total distance?
+            //
+            // layer: 2 / leg: 4
+            //
+            // assuming X is the third turnpoint, what is the fourth turnpoint
+            // that results in the highest total distance?
+            //
+            // ...
+            //
+            // layer: 5 / leg: 1
+            //
+            // assuming X is the start point, what is the first turnpoint
+            // that results in the highest total distance?
+
+            let last_layer = &graph[layer_index - 1];
+
+            let layer = opt_par_iter(dist_matrix)
+                .enumerate()
+                .map(|(tp_index, distances)| {
+                    distances.iter()
+                        .zip(last_layer.iter())
+                        .enumerate()
+                        .skip(tp_index)
+                        .map(|(prev_index, (&leg_dist, last_layer_cell))| {
+                            let distance = last_layer_cell.distance + leg_dist;
+                            GraphCell { prev_index, distance }
+                        })
+                        .max_by_key(|cell| OrdVar::new_checked(cell.distance))
+                        .unwrap()
+                })
+                .collect();
+
+            graph.push(layer);
+        }
+
+        Graph { g: graph }
+    }
+
+    fn for_start_index(start_index: usize, dist_matrix: &[Vec<f32>]) -> Self {
+        let mut graph: Vec<Vec<GraphCell>> = Vec::with_capacity(LEGS);
+
+        trace!("-- Analyzing leg #{}", 1);
+
+        // layer: 0 / leg: 1
+        //
+        // assuming X is the first turnpoint, what is the distance to `start_index`?
+        let layer = dist_matrix[start_index].iter()
+            // skip points before start_index
+            .skip(start_index)
+            .map(|&distance| GraphCell { prev_index: start_index, distance })
+            .collect();
+
+        graph.push(layer);
+
+        for layer_index in 1..LEGS {
+            trace!("-- Analyzing leg #{}", layer_index + 1);
+
+            // layer: 1 / leg: 2
+            //
+            // assuming X is the second turnpoint, what is the first turnpoint
+            // that results in the highest total distance?
+            //
+            // layer: 2 / leg: 3
+            //
+            // assuming X is the third turnpoint, what is the second turnpoint
+            // that results in the highest total distance?
+            //
+            // ...
+            //
+            // layer: 5 / leg: 6
+            //
+            // assuming X is the finish point, what is the fifth turnpoint
+            // that results in the highest total distance?
+
+            let last_layer = &graph[layer_index - 1];
+
+            let layer = opt_par_iter(dist_matrix)
+                // skip points before start_index
+                .skip(start_index)
+                .enumerate()
+                .map(|(tp_index, distances)| {
+                    distances.iter()
+                        .skip(start_index)
+                        .zip(last_layer.iter())
+                        .enumerate()
+                        .take(tp_index + 1)
+                        .map(|(prev_index, (&leg_dist, last_layer_cell))| {
+                            let prev_index = prev_index + start_index;
+                            let distance = last_layer_cell.distance + leg_dist;
+                            GraphCell { prev_index, distance }
+                        })
+                        .max_by_key(|cell| OrdVar::new_checked(cell.distance))
+                        .unwrap()
+                })
+                .collect();
+
+            graph.push(layer);
+        }
+
+        Graph { g: graph }
+    }
+
+    /// Finds the best (largest distance), valid (with 1000m rule) path
+    /// through the graph and returns `(distance, path)`
+    fn find_best_valid_solution<T: Point>(&self, points: &[T]) -> OptimizationResult {
+        let last_graph_row = self.g.last().unwrap();
+
+        let offset = points.len() - last_graph_row.len();
+
+        last_graph_row.iter()
+            .enumerate()
+            .filter_map(|(index, cell)| {
+                let iter = GraphIterator {
+                    graph: self,
+                    next: Some((self.g.len(), index + offset)),
+                    offset,
+                };
+
+                let mut path = iter.collect::<Vec<_>>();
+                if *path.first().unwrap() > *path.last().unwrap() {
+                    path.reverse();
+                }
+
+                let start_index = *path.first().unwrap();
+                let finish_index = *path.last().unwrap();
+                let start = &points[start_index];
+                let finish = &points[finish_index];
+                let altitude_delta = start.altitude() - finish.altitude();
+                if altitude_delta <= 1000  {
+                    Some(OptimizationResult { distance: cell.distance, path })
+                } else {
+                    None
+                }
+            })
+            .max_by_key(|result| OrdVar::new_checked(result.distance))
+            .unwrap()
+    }
+}
+
+struct GraphIterator<'a> {
+    graph: &'a Graph,
+    next: Option<(usize, usize)>,
+    offset: usize,
+}
+
+impl Iterator for GraphIterator<'_> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.next.is_none() { return None; }
+
+        let (layer, index) = self.next.unwrap();
+        self.next = if layer == 0 {
+            None
+        } else {
+            let next_layer = layer - 1;
+            let next_index = self.graph.g[next_layer][index - self.offset].prev_index;
+            Some((next_layer, next_index))
         };
 
-        dists.push(leg_dists)
+        Some(index)
     }
-
-    dists
-}
-
-/// Finds the path through the `leg_distance_matrix` with the largest distance
-/// and returns an array with the corresponding `points` indices
-///
-fn find_max_distance_path<T: Point>(leg_distance_matrix: &[Vec<(usize, f32)>], points: &[T]) -> [usize; LEGS + 1] {
-    let max_distance_finish_index = leg_distance_matrix[LEGS - 1]
-        .iter()
-        .enumerate()
-        .filter(|&(finish_index, _)| {
-            let path = find_path(leg_distance_matrix, finish_index);
-            let start_index = path[0];
-            let start = &points[start_index];
-            let finish = &points[finish_index];
-            finish.altitude() + 1000 >= start.altitude()
-        })
-        .ord_subset_max_by_key(|&(_, (_, dist))| dist)
-        .map_or(0, |it| it.0);
-
-    find_path(leg_distance_matrix, max_distance_finish_index)
-}
-
-fn find_path(leg_distance_matrix: &[Vec<(usize, f32)>], finish_index: usize) -> [usize; LEGS + 1] {
-    let mut point_list: [usize; LEGS + 1] = [0; LEGS + 1];
-
-    point_list[LEGS] = finish_index;
-
-    // find waypoints
-    for leg in (0..LEGS).rev() {
-        point_list[leg] = leg_distance_matrix[leg][point_list[leg + 1]].0;
-    }
-
-    point_list
 }
 
 /// Calculates the total task distance (via haversine algorithm) from
 /// the original `route` and the arry of indices
 ///
-fn calculate_distance<T: Point>(route: &[T], point_list: &[usize]) -> f32 {
-    (0..LEGS)
-        .map(|i| (point_list[i], point_list[i + 1]))
-        .map(|(i1, i2)| (&route[i1], &route[i2]))
+fn calculate_distance<T: Point>(points: &[T], path: &Path) -> f32 {
+    path.iter().zip(path.iter().skip(1))
+        .map(|(i1, i2)| (&points[*i1], &points[*i2]))
         .map(|(fix1, fix2)| haversine_distance(fix1, fix2))
         .sum()
 }

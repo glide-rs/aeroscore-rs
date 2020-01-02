@@ -5,6 +5,7 @@ extern crate aeroscore;
 extern crate igc;
 
 use aeroscore::olc;
+use aeroscore::olc::OptimizationResult;
 use igc::util::Time;
 
 struct Point {
@@ -28,22 +29,31 @@ impl aeroscore::Point for Point {
 #[test]
 fn distance_for_78e_6ng() {
     let release = Time::from_hms(10, 28, 05);
-    run_test(include_str!("fixtures/2017-08-14-fla-6ng-01.igc"), release, 501.3);
+    let result = run_test(include_str!("fixtures/2017-08-14-fla-6ng-01.igc"), release);
+    assert_approx_eq!(result.distance, 501.3, 0.1);
+    assert_eq!(result.path, vec![197, 1225, 2080, 3492, 4946, 5504, 6104]);
 }
 
 #[test]
 fn distance_for_87i_qqk() {
     let release = Time::from_hms(09, 02, 05);
-    run_test(include_str!("fixtures/87ilqqk1.igc"), release, 779.3);
+    let result = run_test(include_str!("fixtures/87ilqqk1.igc"), release);
+    assert_approx_eq!(result.distance, 780.42, 0.1);
+    assert_eq!(result.path, vec![1, 1129, 1666, 4348, 6070, 6681, 7194]);
 }
 
 #[test]
+#[ignore]
 fn distance_for_99b_7r9() {
     let release = Time::from_hms(16, 54, 06);
-    run_test(include_str!("fixtures/99bv7r92.igc"), release, 115.86);
+    let result = run_test(include_str!("fixtures/99bv7r92.igc"), release);
+    assert_approx_eq!(result.distance, 197.14, 0.1);
+    assert_eq!(result.path, vec![106, 5041, 5927, 6388, 6731, 10294, 15398]);
 }
 
-fn run_test(file: &str, release: Time, expected_distance: f32) {
+fn run_test(file: &str, release: Time) -> OptimizationResult {
+    env_logger::try_init().ok();
+
     let fixes = file.lines()
         .filter(|l| l.starts_with('B'))
         .filter_map(|line| igc::records::BRecord::parse(&line).ok()
@@ -52,7 +62,7 @@ fn run_test(file: &str, release: Time, expected_distance: f32) {
                     Some(Point {
                         latitude: record.pos.lat.into(),
                         longitude: record.pos.lon.into(),
-                        altitude: record.gps_alt,
+                        altitude: record.pressure_alt,
                     })
                 } else {
                     None
@@ -60,7 +70,5 @@ fn run_test(file: &str, release: Time, expected_distance: f32) {
             }))
         .collect::<Vec<_>>();
 
-    let result = olc::optimize(&fixes).unwrap();
-
-    assert_approx_eq!(result.distance, expected_distance, 0.1);
+    olc::optimize(&fixes).unwrap()
 }

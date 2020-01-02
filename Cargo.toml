@@ -20,6 +20,7 @@ default = ["rayon"]
 cfg-if = "0.1"
 failure = "^0.1.1"
 flat_projection = "0.3.0"
+log = "0.4.8"
 ord_subset = "^3.1.0"
 rayon = { version = "^1.0", optional = true }
 
@@ -27,6 +28,7 @@ rayon = { version = "^1.0", optional = true }
 assert_approx_eq = "^1.0.0"
 criterion = "^0.3.0"
 igc = "0.2.2"
+env_logger = "0.7.1"
 serde_json = "^1.0.0"
 
 [[bench]]
