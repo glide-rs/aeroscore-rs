@@ -33,16 +33,16 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
     debug!("-- New best solution: {:.3} km -> {:?}", calculate_distance(route, &best_valid.path), best_valid.path);
 
     debug!("Searching for potentially better solutions");
-    let mut end_candidates: Vec<_> = graph.g[LEGS - 1].iter()
+    let mut start_candidates: Vec<_> = graph.g[LEGS - 1].iter()
         .enumerate()
         .filter(|(_, cell)| cell.distance > best_valid.distance)
         .map(|(start_index, cell)| StartCandidate { distance: cell.distance, start_index })
         .collect();
 
-    end_candidates.sort_by_key(|it| OrdVar::new_checked(it.distance));
-    debug!("{} potentially better start points found", end_candidates.len());
+    start_candidates.sort_by_key(|it| OrdVar::new_checked(it.distance));
+    debug!("{} potentially better start points found", start_candidates.len());
 
-    while let Some(candidate) = end_candidates.pop() {
+    while let Some(candidate) = start_candidates.pop() {
         let finish_altitude = route[candidate.start_index].altitude();
 
         debug!("Calculating solution graph with start point at index {}", candidate.start_index);
@@ -52,12 +52,12 @@ pub fn optimize<T: Point>(route: &[T]) -> Result<OptimizationResult, Error> {
             best_valid = best_valid_for_candidate;
             debug!("-- New best solution: {:.3} km -> {:?}", calculate_distance(route, &best_valid.path), best_valid.path);
 
-            end_candidates.retain(|it| it.distance > best_valid.distance);
+            start_candidates.retain(|it| it.distance > best_valid.distance);
         } else {
             debug!("Discarding solution with {:.3} km", calculate_distance(route, &best_valid_for_candidate.path));
         }
 
-        debug!("{} potentially better end points left", end_candidates.len());
+        debug!("{} potentially better start points left", start_candidates.len());
     }
 
     let distance = calculate_distance(route, &best_valid.path);
