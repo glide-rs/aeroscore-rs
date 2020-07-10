@@ -73,12 +73,12 @@ struct StartCandidate {
 }
 
 /// Generates a triangular matrix with the distances in kilometers between all points.
-/// For each point, the distance to the following points is saved. This only allows
-/// calculation of backward min-marginals
+/// For each point, the distance to the preceding points is saved. This only allows
+/// calculation of forward min-marginals
 pub fn half_dist_matrix(flat_points: &[FlatPoint<f32>]) -> Vec<Vec<f32>> {
     opt_par_iter(flat_points)
         .enumerate()
-        .map(|(i, p1)| flat_points[i..].iter()
+        .map(|(i, p1)| flat_points[..i+1].iter()
             .map(|p2| p1.distance(p2))
             .collect()) 
         .collect()
@@ -98,13 +98,12 @@ impl Graph {
     fn from_distance_matrix(dist_matrix: &[Vec<f32>]) -> Self {
         let mut graph: Vec<Vec<GraphCell>> = Vec::with_capacity(LEGS);
 
-        trace!("-- Analyzing leg #{}", 6);
+        trace!("-- Analyzing leg #{}", 1);
 
         let layer: Vec<GraphCell> = opt_par_iter(dist_matrix)
-            .enumerate()
-            .map(|(tp_index, distances)| distances.iter()
+            .map(|distances| distances.iter()
                 .enumerate()
-                .map(|(start_index, &distance)| GraphCell { prev_index: start_index+tp_index, distance })
+                .map(|(start_index, &distance)| GraphCell { prev_index: start_index, distance })
                 .max_by_key(|cell| OrdVar::new_checked(cell.distance))
                 .unwrap())
             .collect();
@@ -112,18 +111,17 @@ impl Graph {
         graph.push(layer);
 
         for layer_index in 1..LEGS {
-            trace!("-- Analyzing leg #{}", LEGS - layer_index);
+            trace!("-- Analyzing leg #{}", layer_index+1);
             let last_layer = &graph[layer_index - 1];
 
             let layer: Vec<GraphCell> = opt_par_iter(dist_matrix)
-                .enumerate()
-                .map(|(tp_index, distances)| {
+                .map(|distances| {
                     distances.iter()
-                        .zip(last_layer.iter().skip(tp_index))
+                        .zip(last_layer.iter())
                         .enumerate()
                         .map(|(prev_index, (&leg_dist, last_layer_cell))| {
                             let distance = last_layer_cell.distance + leg_dist;
-                            GraphCell { prev_index: prev_index+tp_index, distance }
+                            GraphCell { prev_index: prev_index, distance }
                         })
                         .max_by_key(|cell| OrdVar::new_checked(cell.distance))
                         .unwrap()
@@ -136,26 +134,25 @@ impl Graph {
         Graph { g: graph }
     }
 
-    fn for_start_index<T: Point>(start_altitude: i16, dist_matrix: &[Vec<f32>], points: &[T]) -> Self {
+    fn for_start_index<T: Point>(finish_altitude: i16, dist_matrix: &[Vec<f32>], points: &[T]) -> Self {
         let mut graph: Vec<Vec<GraphCell>> = Vec::with_capacity(LEGS);
 
-        trace!("-- Analyzing leg #{}", 6);
+        trace!("-- Analyzing leg #{}", 1);
 
-        // Only use finish points which are compliant to 1000m rule
+        // Only use start points which are compliant to 1000m rule
         //
         // assuming X is the first turnpoint, what is the distance to `start_index`?
 
         let layer: Vec<GraphCell> = opt_par_iter(dist_matrix)
-            .enumerate()
-            .map(|(tp_index, distances)| distances.iter()
+            .map(|distances| distances.iter()
                 .enumerate()
-                .map(|(finish_index, &distance)| {
-                    let finish = &points[finish_index+tp_index];
-                    let altitude_delta = start_altitude - finish.altitude();
+                .map(|(start_index, &distance)| {
+                    let start = &points[start_index];
+                    let altitude_delta = start.altitude() - finish_altitude;
                     if altitude_delta <= 1000  {
-                        GraphCell { prev_index: finish_index+tp_index, distance: distance }
+                        GraphCell { prev_index: start_index, distance: distance }
                     } else {
-                        GraphCell { prev_index: finish_index+tp_index, distance: distance - 100_000.0}
+                        GraphCell { prev_index: start_index, distance: distance - 100_000.0}
                     }
                 })
                 .max_by_key(|cell| OrdVar::new_checked(cell.distance))
@@ -165,7 +162,7 @@ impl Graph {
         graph.push(layer);
 
         for layer_index in 1..LEGS {
-            trace!("-- Analyzing leg #{}", LEGS - layer_index);
+            trace!("-- Analyzing leg #{}", layer_index + 1);
 
             // layer: 1 / leg: 2
             //
@@ -186,14 +183,13 @@ impl Graph {
 
             let last_layer = &graph[layer_index - 1];
             let layer: Vec<GraphCell> = opt_par_iter(dist_matrix)
-                .enumerate()
-                .map(|(tp_index, distances)| {
+                .map(|distances| {
                     distances.iter()
-                        .zip(last_layer.iter().skip(tp_index))
+                        .zip(last_layer.iter())
                         .enumerate()
                         .map(|(prev_index, (&leg_dist, last_layer_cell))| {
                             let distance = last_layer_cell.distance + leg_dist;
-                            GraphCell { prev_index: prev_index+tp_index, distance }
+                            GraphCell { prev_index, distance }
                         })
                         .max_by_key(|cell| OrdVar::new_checked(cell.distance))
                         .unwrap()
