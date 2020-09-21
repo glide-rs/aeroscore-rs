@@ -19,7 +19,7 @@ default = ["rayon"]
 [dependencies]
 cfg-if = "0.1"
 failure = "^0.1.1"
-flat_projection = "0.3.0"
+flat_projection = "0.4.0"
 log = "0.4.8"
 ord_subset = "^3.1.0"
 rayon = { version = "^1.0", optional = true }
