@@ -11,7 +11,6 @@ cfg_if! {
 
     } else {
         use std::slice;
-
         pub fn opt_par_iter<T>(x: &[T]) -> slice::Iter<T> {
             x.iter()
         }
